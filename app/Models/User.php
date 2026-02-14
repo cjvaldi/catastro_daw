@@ -18,6 +18,12 @@ class User extends Authenticatable
      *
      * @var list<string>
      */
+
+    // Roles del sistema
+    public const ROLE_ADMIN = 'admin';
+    public const ROLE_REGISTRADO = 'registrado';
+    public const ROLE_VISITANTE = 'visitante';
+
     protected $fillable = [
         'name',
         'email',
@@ -48,13 +54,31 @@ class User extends Authenticatable
     }
 
     // Relaciones
-    public function favoritos(): HasMany {
-        return $this->hasMany(Favorito::class,'usuario_id');
+    public function favoritos(): HasMany
+    {
+        return $this->hasMany(Favorito::class, 'usuario_id');
     }
 
     public  function notas()
     {
-        return $this->hasMany(Nota::class,'usuario_id');
+        return $this->hasMany(Nota::class, 'usuario_id');
     }
 
+    // Funciones para la verificacion de los usuarios if (auth()->user()->isAdmin())
+
+    public function isAdmin(): bool
+    {
+        return $this->rol === self::ROLE_ADMIN;
+    }
+
+    public function isRegistrado():bool
+    {
+        return $this->rol === self::ROLE_REGISTRADO;
+    }
+
+    public function isVisitante():bool
+    {
+        return $this->roll === self::ROLE_VISITANTE;
+    }
+    
 }
