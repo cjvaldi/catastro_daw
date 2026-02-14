@@ -28,8 +28,10 @@
             @endisset
 
             <!-- Page Content -->
+             {{-- Este es un comentario en Blade --}}
             <main>
-                {{ $slot }}
+                {{-- $slot --}} 
+                  @yield('content')
             </main>
         </div>
     </body>
