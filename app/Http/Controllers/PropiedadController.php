@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Propiedad;
+use App\Services\CatastroService;
+use Illuminate\Support\Facades\Auth;
+
 
 class PropiedadController extends Controller
 {
@@ -63,5 +66,34 @@ class PropiedadController extends Controller
     public function destroy(string $id)
     {
         //
+    }
+
+    public function buscar(Request $request, CatastroService $catastro)
+    {
+        $request->validate([
+            'referencia'=> 'required|string|min:14'
+        ]);
+
+        try {
+            
+            $datos = $catastro->consultarPorReferencia($request->referencia);
+
+            // Json completo para almacenar datos
+            $propiedad = Propiedad::updateOrCreate(
+                ['referencia_catastral'=>$request->referencia],
+                [
+                    'clase'=>$datos['consulta_dnp'][' bico'][' bi'][' idbi']['cn'] ?? null,
+                    'uso'=>$datos['consulta_dnp'][' bico'][' bi']['debi']['luso'] ?? null,
+                    'superficie_m2'=>$datos['consulta_dnp']['bico']['bi']['debi']['sfc'] ?? null,
+                    'antiguedad_anios'=>$datos['consulta_dnp']['bico']['bi']['debi']['ant'] ?? null,
+                    'raw_json'=>json_encode($datos)
+                ]
+            );
+
+            return redirect()->route('propiedades.show',$propiedad);
+
+        } catch (\Exception $e) {
+            return back()->with('error',$e->getMessage());
+        }
     }
 }

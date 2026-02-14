@@ -29,5 +29,8 @@ Route::middleware(['auth'])->group(function () {
         ->only(['index', 'show']);
 });
 
+Route::post('/propiedades/buscar', [PropiedadController::class, 'buscar'])
+    ->middleware('auth')
+    ->name('propiedad.buscar');
 
 require __DIR__ . '/auth.php';
