@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('propiedades', function (Blueprint $table) {
             $table->id();
 
-            $table->string('referecia_catastral', 32)->unique();
+            $table->string('referencia_catastral', 32)->unique();
             $table->string('clase', 4)->nullable();
 
             $table->string('provincia_codigo', 4)->nullable();
@@ -25,7 +25,7 @@ return new class extends Migration
 
             $table->string('direccion_text')->nullable();
 
-            $table->string('tipo:Via', 10)->nullable();
+            $table->string('tipo_Via', 10)->nullable();
             $table->string('nombre_via', 200)->nullable();
             $table->string('numero', 50)->nullable();
             $table->string('bloque', 50)->nullable();

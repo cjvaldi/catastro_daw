@@ -13,25 +13,13 @@ class Propiedad extends Model
     protected $fillable = [
         'referencia_catastral',
         'clase',
-        // 'provincia_codigo',
-        // 'municipio_codigo',
         'provincia',
         'municipio',
         'direccion_text',
-        // 'tipo_via',
-        // 'nombre_via',
-        // 'numero',
-        // 'bloque',
-        // 'escalera',
-        // 'planta',
-        // 'puerta',
-        // 'codigo_postal',
-        // 'distrito_municipal',
         'uso',
         'superficie_m2',
         'coef_participacion',
         'antiguedad_anios',
-        // 'domicilio_tributario',
         'raw_json'   //Permite auditoría
     ];
 
@@ -44,10 +32,10 @@ class Propiedad extends Model
 
     public function municipio():BelongsTo
     {
-        return $this->belonsTo(Municipio::class,'municipio_codigo','codigo');
+        return $this->belongsTo(Municipio::class,'municipio_codigo','codigo');
     }
 
-    public function unidades(): HasMany
+    public function unidadesConstructivas(): HasMany
     {
         return $this->hasMany(UnidadConstructiva::class);
     }

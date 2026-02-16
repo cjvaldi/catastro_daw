@@ -21,8 +21,9 @@ class Municipio extends Model
         return $this->belongsTo(Provincia::class,'provincia_codigo','codigo');
     }
 
-    public function propiedad()
+    public function propiedades()
     {
         return $this->hasMany(Propiedad::class,'municipio_codigo','codigo');
     }
+
 }

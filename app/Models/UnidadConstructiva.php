@@ -21,7 +21,9 @@ class UnidadConstructiva extends Model
 
     public function propiedad():BelongsTo
     {
-        return $this->belonsTo(Propiedad::class);
+        return $this->belongsTo(Propiedad::class);
     }
+
+    
 
 }

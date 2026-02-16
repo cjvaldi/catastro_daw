@@ -13,14 +13,17 @@
     <h3>Unidades Constructivas</h3>
 
     <ul>
-        @foreach ($propiedades->unidades as $unidad )
-        <li>
-            {{ $unidad->tipo_unidad }} -
-            {{ $unidad->superficie_m2 }} m2
-        </li>
-        @endforeach
+        @forelse ($propiedad->unidadesConstructivas ?? [] as $unidad )
+            <li>
+                {{ $unidad->tipo_unidad }} -
+                {{ $unidad->superficie_m2 }} m2
+            </li>
+        @empty
+            <p>No hay unidades constructivas</p>
+        @endforelse
     </ul>
     <a href="{{ route('propiedades.index') }}"> Volver a propiedades</a>
 </div>
+
 
 @endsection

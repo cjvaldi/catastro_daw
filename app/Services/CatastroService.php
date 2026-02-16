@@ -15,11 +15,10 @@ class CatastroService
             ['RefCat' => $referencia]
         );
 
-        if(!$response->successful()){
+        if (!$response->successful()) {
             throw new \Exception('Error al consulta la API del catastro');
         }
-
+        // dd($response->json());  // ver datos entrantes
         return $response->json();
-
     }
 }
