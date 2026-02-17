@@ -12,6 +12,7 @@ class Provincia extends Model
     protected $primaryKey = 'codigo';
     public $incrementing = false;
     protected $keytype='string';
+    public $timestamps = false;
     protected $fillable =['codigo', 'nombre'];
 
     public function municipios()

@@ -32,7 +32,7 @@ Route::post('/propiedades/test-api', [PropiedadController::class, 'testApi'])
 | Visitante + Registrado + Admin — Requiere login
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth','activo'])->group(function () {
+Route::middleware(['auth', 'activo'])->group(function () {
 
     Route::get('/dashboard', function () {
         return view('dashboard');
@@ -57,10 +57,10 @@ Route::middleware(['auth','activo'])->group(function () {
         ->name('profile.upgrade.request');
 
     // Upgrade Premium — solo visitantes
-Route::get('/upgrade', [UpgradeController::class, 'show'])
-    ->name('upgrade.show');
-Route::post('/upgrade', [UpgradeController::class, 'upgrade'])
-    ->name('upgrade.process');    
+    Route::get('/upgrade', [UpgradeController::class, 'show'])
+        ->name('upgrade.show');
+    Route::post('/upgrade', [UpgradeController::class, 'upgrade'])
+        ->name('upgrade.process');
 });
 
 /*
@@ -68,7 +68,14 @@ Route::post('/upgrade', [UpgradeController::class, 'upgrade'])
 | Solo Registrado (Premium) + Admin — Escritura en BD
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth','activo','role:registrado,admin'])->group(function () {
+Route::middleware(['auth', 'activo', 'role:registrado,admin'])->group(function () {
+
+    Route::post(
+        '/propiedades/buscar-direccion',[PropiedadController::class, 'buscarPorDireccion'])
+        ->name('propiedades.buscarDireccion');
+
+    Route::get('/historial',[PropiedadController::class, 'historial'])
+        ->name('propiedades.historial');
 
     Route::post('/propiedades/guardar', [PropiedadController::class, 'guardar'])
         ->name('propiedades.guardar');
@@ -88,26 +95,26 @@ Route::middleware(['auth','activo','role:registrado,admin'])->group(function () 
 | Solo Admin — Panel completo
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth', 'activo','role:admin'])
+Route::middleware(['auth', 'activo', 'role:admin'])
     ->prefix('admin')
     ->name('admin.')
     ->group(function () {
 
-    Route::get('/dashboard', fn() => view('admin.dashboard'))
-        ->name('dashboard');
+        Route::get('/dashboard', fn() => view('admin.dashboard'))
+            ->name('dashboard');
 
-    Route::get('/usuarios', [\App\Http\Controllers\Admin\UsuarioController::class, 'index'])
-        ->name('usuarios.index');
+        Route::get('/usuarios', [\App\Http\Controllers\Admin\UsuarioController::class, 'index'])
+            ->name('usuarios.index');
 
-    Route::patch('/usuarios/{user}/rol', [\App\Http\Controllers\Admin\UsuarioController::class, 'updateRol'])
-        ->name('usuarios.rol');
+        Route::patch('/usuarios/{user}/rol', [\App\Http\Controllers\Admin\UsuarioController::class, 'updateRol'])
+            ->name('usuarios.rol');
 
-    Route::patch('/usuarios/{user}/toggle', [\App\Http\Controllers\Admin\UsuarioController::class, 'toggle'])
-        ->name('usuarios.toggle');
+        Route::patch('/usuarios/{user}/toggle', [\App\Http\Controllers\Admin\UsuarioController::class, 'toggle'])
+            ->name('usuarios.toggle');
 
-    Route::get('/logs', [\App\Http\Controllers\Admin\LogController::class, 'index'])
-        ->name('logs.index');
-});
+        Route::get('/logs', [\App\Http\Controllers\Admin\LogController::class, 'index'])
+            ->name('logs.index');
+    });
 
 require __DIR__ . '/auth.php';
 

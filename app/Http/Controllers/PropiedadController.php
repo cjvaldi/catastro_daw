@@ -8,188 +8,261 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\Propiedad;
 use App\Models\Municipio;
 use App\Models\Provincia;
-
-
+use App\Models\Busqueda;
+use InvalidArgumentException;
 
 class PropiedadController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
-        $propiedades = Propiedad::with(['provincia', 'municipio'])->paginate(10);
+        $propiedades = Propiedad::with(['provincia', 'municipio'])
+            ->paginate(10);
+
         return view('propiedades.index', compact('propiedades'));
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        //
-    }
-
-    /**
-     * Display the specified resource.
-     */
     public function show(Propiedad $propiedad)
     {
         // dump($propiedad);
         $propiedad->load(['provincia', 'municipio', 'unidadesConstructivas']);
         return view('propiedades.show', compact('propiedad'));
     }
-
-    /**
-     * Me permite ver los datos que se envian
-     */
-    // public function show($id)
-    // {
-    //     $propiedad = Propiedad::findOrFail($id);
-    //     dd($propiedad);
-    // }
-
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
-    }
-
+    // Busqueda por referencia - Público
     public function buscar(Request $request, CatastroService $catastro)
     {
         $request->validate([
-            'referencia' => 'required|string|min:14'
+            'referencia' => 'required|string|min:14|max:20'
         ]);
-        //dd(auth()->user()->rol ?? 'invitado'); // para conprobar si llega el usuario
-        try {
 
+        try {
             $datos = $catastro->consultarPorReferencia($request->referencia);
 
+
+            // ✅ DEBUG TEMPORAL — Ver estructura real
+            // dd($datos['consulta_dnprcResult']['bico']['bi']['dt']);
+
+            // Registrar busqqueda si esta autenticado
+            $this->registrarBusqueda(
+                tipo: 'referencia',
+                query: $request->referencia,
+                referencia: $request->referencia,
+                resultados: 1
+            );
+
             return view('propiedades.preview', [
-                'datos' => $datos,
-                'referencia' => $request->referencia
+                'datos'      => $datos,
+                'referencia' => $request->referencia,
+                'tipo'       => 'referencia',
             ]);
+        } catch (\InvalidArgumentException $e) {
+            return back()
+                ->withInput()
+                ->with('error', $e->getMessage());
         } catch (\Exception $e) {
-            return back()->with('error', $e->getMessage());
+            return back()
+                ->withInput()
+                ->with('error', $e->getMessage());
         }
     }
 
-    public function guardar(Request $request)
-{
-    if (!in_array(auth()->user()->rol, ['admin','registrado'])) {
-        abort(403);
-    }
+    // Busqueda por Dirección - Solo Premium
+    public function buscarPorDireccion(Request $request, CatastroService $catastro)
+    {
+        $request->validate([
+            'provincia'  => 'required|string|max:100',
+            'municipio'  => 'required|string|max:100',
+            'tipo_via'   => 'required|string|max:10',
+            'nombre_via' => 'required|string|max:200',
+            'numero'     => 'nullable|string|max:10',
+        ]);
 
-    $datos = json_decode($request->raw_json, true);
+        try {
+            $datos = $catastro->consultarPorDireccion(
+                provincia: $request->provincia,
+                municipio: $request->municipio,
+                tipoVia: $request->tipo_via,
+                nombreVia: $request->nombre_via,
+                numero: $request->numero ?? '',
+            );
 
-    $data = $datos['consulta_dnprcResult'];
-    $bico = $data['bico'];
-    $bi = $bico['bi'];
+            // Registrar búsqueda
+            $this->registrarBusqueda(
+                tipo: 'direccion',
+                query: "{$request->tipo_via} {$request->nombre_via} {$request->numero}, {$request->municipio}",
+                referencia: null,
+                resultados: $this->contarResultados($datos)
+            );
 
-    // Construir referencia correctamente
-    $rc = $bi['idbi']['rc'];
-    $referencia =
-        $rc['pc1'] .
-        $rc['pc2'] .
-        $rc['car'] .
-        $rc['cc1'] .
-        $rc['cc2'];
-
-    // Datos localización
-    $provinciaCodigo = $bi['dt']['loine']['cp'] ?? null;
-    $municipioCodigo = $bi['dt']['cmc'] ?? null;
-    
-
-    $provinciaNombre = $bi['dt']['np'] ?? null;
-    $municipioNombre = $bi['dt']['nm'] ?? null;
-
-    // Crear provincia si no existe
-    Provincia::firstOrCreate(
-        ['codigo' => $provinciaCodigo],
-        ['nombre' => $provinciaNombre]
-    );
-
-    // Crear municipio si no existe
-    Municipio::firstOrCreate(
-        ['codigo' => $municipioCodigo],
-        [
-            'nombre' => $municipioNombre,
-            'provincia_codigo' => $provinciaCodigo
-        ]
-    );
-
-    // Guardar propiedad
-    $propiedad = Propiedad::updateOrCreate(
-        ['referencia_catastral' => $referencia,
-        'user_id' => auth()->id()],
-        [
-            'user_id' => auth()->id(),
-            'clase' => $bi['idbi']['cn'] ?? null,
-            'provincia_codigo' => $provinciaCodigo,
-            'municipio_codigo' => $municipioCodigo,
-            'provincia' => $provinciaNombre,
-            'municipio' => $municipioNombre,
-            'direccion_text' => $bi['ldt'] ?? null,
-            'uso' => $bi['debi']['luso'] ?? null,
-            'superficie_m2' => (float)($bi['debi']['sfc'] ?? 0),
-            'coef_participacion' =>
-                str_replace(',', '.', $bi['debi']['cpt'] ?? null),
-            'antiguedad_anios' => $bi['debi']['ant'] ?? null,
-            'raw_json' => $datos // 👈 guardar como array
-        ]
-    );
-
-    // ==========================
-    // UNIDADES CONSTRUCTIVAS
-    // ==========================
-
-    $propiedad->unidadesConstructivas()->delete();
-
-    if (isset($bico['lcons'])) {
-
-        foreach ($bico['lcons'] as $unidad) {
-
-            $propiedad->unidadesConstructivas()->create([
-                'tipo_unidad' => $unidad['lcd'] ?? null,
-                'tipologia' => $unidad['dvcons']['dtip'] ?? null,
-                'superficie_m2' => $unidad['dfcons']['stl'] ?? null,
-                'localizacion_externa' =>
-                    $unidad['dt']['lourb']['loint']['es'] ?? null,
-                'raw_json' => $unidad
+            return view('propiedades.preview-direccion', [
+                'datos'  => $datos,
+                'filtro' => $request->all(),
+                'tipo'   => 'direccion',
             ]);
+        } catch (\InvalidArgumentException $e) {
+            return back()
+                ->withInput()
+                ->with('error', $e->getMessage());
+        } catch (\Exception $e) {
+            return back()
+                ->withInput()
+                ->with('error', $e->getMessage());
         }
     }
 
-    return redirect()->route('propiedades.show', $propiedad);
-}
 
+
+    // Guardar - Solo Premium
+    public function guardar(Request $request)
+    {
+        $datos = json_decode($request->raw_json, true);
+
+        if (!$datos) {
+            return back()->with('error', 'Datos invalidos.');
+        }
+
+        // ✅ DEBUG: Ver estructura completa que llega
+        \Log::info('=== ESTRUCTURA COMPLETA ===');
+        \Log::info('Keys nivel 1: ' . json_encode(array_keys($datos)));
+
+        if (isset($datos['consulta_dnprcResult'])) {
+            \Log::info('Tiene consulta_dnprcResult');
+            $data = $datos['consulta_dnprcResult'];
+
+            if (isset($data['bico']['bi']['dt']['locs'])) {
+                \Log::info('locs: ' . json_encode($data['bico']['bi']['dt']['locs']));
+            } else {
+                \Log::info('NO TIENE locs');
+            }
+        }
+
+        $data = $datos['consulta_dnprcResult'];
+        $bico = $data['bico'];
+        $bi = $bico['bi'];
+
+        $rc = $bi['idbi']['rc'];
+
+        // Construir referencia correctamente
+        $referencia = $rc['pc1'] . $rc['pc2'] . $rc['car'] . $rc['cc1'] . $rc['cc2'];
+
+        // Datos localización
+        $provinciaCodigo = $bi['dt']['loine']['cp'] ?? null;
+        $municipioCodigo = $bi['dt']['cmc'] ?? null;
+        $provinciaNombre = $bi['dt']['np'] ?? null;
+        $municipioNombre = $bi['dt']['nm'] ?? null;
+
+        // ✅ DEBUG: Ver qué trae $lourb
+        $lourb = $bi['dt']['locs']['lous']['lourb'] ?? null;
+        $dir   = $lourb['dir'] ?? [];
+        $loint = $lourb['loint'] ?? [];
+
+        // dd([
+        //     'lourb_existe' => !is_null($lourb),
+        //     'dir' => $dir,
+        //     'loint' => $loint,
+        //     'tv' => $dir['tv'] ?? 'NO EXISTE',
+        //     'nv' => $dir['nv'] ?? 'NO EXISTE',
+        //     'pnp' => $dir['pnp'] ?? 'NO EXISTE',
+        // ]);
+
+        // Crear provincia si no existe
+        Provincia::firstOrCreate(
+            ['codigo' => $provinciaCodigo],
+            ['nombre' => $provinciaNombre]
+        );
+
+        // Crear municipio si no existe
+        Municipio::firstOrCreate(
+            ['codigo' => $municipioCodigo],
+            ['nombre' => $municipioNombre, 'provincia_codigo' => $provinciaCodigo]
+        );
+
+        // Guardar propiedad
+        $propiedad = Propiedad::updateOrCreate(
+            [
+                'referencia_catastral' => $referencia,
+                'user_id' => auth()->id()
+            ],
+            [
+                'clase'               => $bi['idbi']['cn'] ?? null,
+                'provincia_codigo'    => $provinciaCodigo,
+                'municipio_codigo'    => $municipioCodigo,
+                'provincia'           => $provinciaNombre,
+                'municipio'           => $municipioNombre,
+                'direccion_text'      => $bi['ldt'] ?? null,
+                'tipo_via'            => $dir['tv'] ?? null,
+                'nombre_via'          => $dir['nv'] ?? null,
+                'numero'              => $dir['pnp'] ?? null,
+                'bloque'              => $loint['bq'] ?? null,
+                'escalera'            => $loint['es'] ?? null,
+                'planta'              => $loint['pt'] ?? null,
+                'puerta'              => $loint['pu'] ?? null,
+                'codigo_postal'       => $lourb['dp'] ?? null,  
+                'uso'                 => $bi['debi']['luso'] ?? null,
+                'superficie_m2'       => (float)($bi['debi']['sfc'] ?? 0),
+                'coef_participacion'  => str_replace(',', '.', $bi['debi']['cpt'] ?? null),
+                'antiguedad_anios'    => $bi['debi']['ant'] ?? null,
+                'raw_json'            => $datos,
+            ]
+        );
+
+        // ==========================
+        // Regenerar unidades constructivas
+        // ==========================
+
+        $propiedad->unidadesConstructivas()->delete();
+
+        if (isset($bico['lcons'])) {
+            foreach ($bico['lcons'] as $unidad) {
+                $propiedad->unidadesConstructivas()->create([
+                    'tipo_unidad'           => $unidad['lcd'] ?? null,
+                    'tipologia'             => $unidad['dvcons']['dtip'] ?? null,
+                    'superficie_m2'         => $unidad['dfcons']['stl'] ?? null,
+                    'localizacion_externa'  => $unidad['dt']['lourb']['loint']['es'] ?? null,
+                    'raw_json'              => $unidad,
+                ]);
+            }
+        }
+
+        return redirect()
+            ->route('propiedades.show', $propiedad)
+            ->with('success', 'Propiedad guardadd correctamente.');
+    }
+
+    // Hisorial de Busqueda
+    public function historial()
+    {
+        $busquedas = Busqueda::where('usuario_id', auth()->id())
+            ->latest()
+            ->paginate(20);
+
+        return view('propiedades.historial', compact('busquedas'));
+    }
+
+    // Registrar busquedas
+    private function registrarBusqueda(
+        string $tipo,
+        string $query,
+        ?string $referencia,
+        int $resultados
+    ): void {
+        if (!auth()->check()) return;
+
+        Busqueda::create([
+            'usuario_id'        => auth()->id(),
+            'query_text'        => $query,
+            'referencia_busqueda' => $referencia,
+            'params_json'         => ['tipo' => $tipo, 'query' => $query],
+            'result_count'      => $resultados,
+        ]);
+    }
+
+    //Contar resultados de direccion
+    private function contarResultados(array $datos): int
+    {
+        return isset($datos['consulta_dnplocResult']['bico'])
+            ? count((array)$datos['consulta_dnplocResult']['bico'])
+            : 0;
+    }
 
     public function testApi(Request $request, CatastroService $catastro)
     {
@@ -202,3 +275,5 @@ class PropiedadController extends Controller
         dump($datos); // solo para comprobaciones y comprobar la estructura real
     }
 }
+
+//fin controlador    
