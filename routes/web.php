@@ -6,36 +6,29 @@ use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
-| Rutas públicas
-|--------------------------------------------------------------------------
-*/
-
-Route::get('/', function () {
-    return view('welcome');
-});
-
-
-//   ************* MIS RUTAS *************************** 
-/*
-|--------------------------------------------------------------------------
 | Rutas públicas (Anónimo permitido)
 | Usuario Anónimo solo puede buscar por referencia, la función buscar es pública
 | Anónimo, visitante, registrado, admin|
 |--------------------------------------------------------------------------
 */
+
+Route::get('/', function () {
+    return view('welcome');
+})->name('home');
+
 Route::post('/propiedades/buscar', [PropiedadController::class, 'buscar'])
     ->name('propiedades.buscar');
 
+Route::get('/propiedades', [PropiedadController::class, 'index'])
+    ->name('propiedades.index');
 // Test API 
 // Referencia 2749704YJ0624N0001DI 
 Route::post('/propiedades/test-api', [PropiedadController::class, 'testApi'])
     ->name('propiedades.testApi');
 
-
-
 /*
 |--------------------------------------------------------------------------
-| Rutas autenticadas (Visitante + Registrado + Admin)
+| Visitante + Registrado + Admin — Requiere login
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth'])->group(function () {
@@ -49,33 +42,64 @@ Route::middleware(['auth'])->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    // Listado propiedades (solo autenticados)
-    Route::get('/propiedades', [PropiedadController::class, 'index'])
-        ->name('propiedades.index');
-
+    // Ver detalle + historial — Visitante
     Route::get('/propiedades/{propiedad}', [PropiedadController::class, 'show'])
         ->name('propiedades.show');
+
+    Route::get('/historial', [PropiedadController::class, 'historial'])
+        ->name('propiedades.historial');
+
+    // Solicitar upgrade a Premium
+    Route::get('/upgrade', [ProfileController::class, 'showUpgrade'])
+        ->name('profile.upgrade');
+    Route::post('/upgrade', [ProfileController::class, 'requestUpgrade'])
+        ->name('profile.upgrade.request');
 });
 
 /*
 |--------------------------------------------------------------------------
-| Solo Registrado y Admin
+| Solo Registrado (Premium) + Admin — Escritura en BD
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth','role:admin,registrado'])->group(function () {
+Route::middleware(['auth', 'role:registrado,admin'])->group(function () {
+
     Route::post('/propiedades/guardar', [PropiedadController::class, 'guardar'])
         ->name('propiedades.guardar');
+
+    Route::post('/propiedades/{propiedad}/favorito', [PropiedadController::class, 'toggleFavorito'])
+        ->name('propiedades.favorito');
+
+    Route::post('/propiedades/{propiedad}/nota', [PropiedadController::class, 'guardarNota'])
+        ->name('propiedades.nota');
+
+    Route::delete('/propiedades/{propiedad}/nota/{nota}', [PropiedadController::class, 'eliminarNota'])
+        ->name('propiedades.nota.eliminar');
 });
 
 /*
 |--------------------------------------------------------------------------
-| Solo Admin
+| Solo Admin — Panel completo
 |--------------------------------------------------------------------------
 */
-Route::middleware('auth', 'role:admin')->group(function () {
-    Route::get('/admin', function () {
-        return view('admin.dashboard');
-    })->name('admin.dashboard');
+Route::middleware(['auth', 'role:admin'])
+    ->prefix('admin')
+    ->name('admin.')
+    ->group(function () {
+
+    Route::get('/dashboard', fn() => view('admin.dashboard'))
+        ->name('dashboard');
+
+    Route::get('/usuarios', [\App\Http\Controllers\Admin\UsuarioController::class, 'index'])
+        ->name('usuarios.index');
+
+    Route::patch('/usuarios/{user}/rol', [\App\Http\Controllers\Admin\UsuarioController::class, 'updateRol'])
+        ->name('usuarios.rol');
+
+    Route::patch('/usuarios/{user}/toggle', [\App\Http\Controllers\Admin\UsuarioController::class, 'toggle'])
+        ->name('usuarios.toggle');
+
+    Route::get('/logs', [\App\Http\Controllers\Admin\LogController::class, 'index'])
+        ->name('logs.index');
 });
 
 require __DIR__ . '/auth.php';

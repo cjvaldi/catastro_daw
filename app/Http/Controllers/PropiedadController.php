@@ -125,6 +125,7 @@ class PropiedadController extends Controller
     // Datos localización
     $provinciaCodigo = $bi['dt']['loine']['cp'] ?? null;
     $municipioCodigo = $bi['dt']['cmc'] ?? null;
+    
 
     $provinciaNombre = $bi['dt']['np'] ?? null;
     $municipioNombre = $bi['dt']['nm'] ?? null;
@@ -146,8 +147,10 @@ class PropiedadController extends Controller
 
     // Guardar propiedad
     $propiedad = Propiedad::updateOrCreate(
-        ['referencia_catastral' => $referencia],
+        ['referencia_catastral' => $referencia,
+        'user_id' => auth()->id()],
         [
+            'user_id' => auth()->id(),
             'clase' => $bi['idbi']['cn'] ?? null,
             'provincia_codigo' => $provinciaCodigo,
             'municipio_codigo' => $municipioCodigo,

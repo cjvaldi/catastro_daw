@@ -11,6 +11,7 @@ class Propiedad extends Model
 {
     protected $table = 'propiedades';
     protected $fillable = [
+        'user_id',
         'referencia_catastral',
         'clase',
         'provincia_codigo',

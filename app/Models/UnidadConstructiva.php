@@ -13,7 +13,7 @@ class UnidadConstructiva extends Model
         'tipo_unidad',
         'tipologia',
         'superficie_m2',
-        'localización_externa',
+        'localizacion_externa',
         'raw_json'
     ];
 

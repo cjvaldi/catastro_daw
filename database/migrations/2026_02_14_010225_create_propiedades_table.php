@@ -6,15 +6,17 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('propiedades', function (Blueprint $table) {
             $table->id();
 
-            $table->string('referencia_catastral', 32)->unique();
+            // Relación con usuario (multiusuario)
+            $table->foreignId('user_id')
+                  ->constrained()
+                  ->onDelete('cascade');
+
+            $table->string('referencia_catastral', 32);
             $table->string('clase', 4)->nullable();
 
             $table->string('provincia_codigo', 4)->nullable();
@@ -25,7 +27,7 @@ return new class extends Migration
 
             $table->string('direccion_text')->nullable();
 
-            $table->string('tipo_Via', 10)->nullable();
+            $table->string('tipo_via', 10)->nullable(); // corregido naming
             $table->string('nombre_via', 200)->nullable();
             $table->string('numero', 50)->nullable();
             $table->string('bloque', 50)->nullable();
@@ -51,7 +53,10 @@ return new class extends Migration
             $table->index('municipio_codigo');
             $table->index('uso');
 
-            //Foreign Keys
+            // Evita duplicados por usuario
+            $table->unique(['referencia_catastral', 'user_id']);
+
+            // Foreign Keys
             $table->foreign('provincia_codigo')
                 ->references('codigo')
                 ->on('provincias')
@@ -64,9 +69,6 @@ return new class extends Migration
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('propiedades');

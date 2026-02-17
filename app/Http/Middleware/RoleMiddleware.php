@@ -13,15 +13,18 @@ class RoleMiddleware
      *
      * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      */
-    public function handle(Request $request, Closure $next, ...$roles): Response
+    public function handle(Request $request, Closure $next, string...$roles): Response
     {
         if (!auth()->check()) {
             return redirect()->route('login');
         }
 
-        // $rolesArray = explode(',',$roles);
 
-        if (!in_array(auth()->user()->rol, $rolesArray)) {
+        // if (!in_array(auth()->user()->rol, $rolesArray)) {
+        //     abort(403, 'No tienes permisos para acceder a esta sección');
+        // }
+
+           if (!auth()->user()->hasRole($roles)) {
             abort(403, 'No tienes permisos para acceder a esta sección');
         }
 

@@ -72,38 +72,38 @@ class CatastroSeeder extends Seeder
         ]);
 
         // PROPIEDAD DE PRUEBA
-        $propiedad = Propiedad::create([
-            'referencia_catastral' => 'TEST1234567890001AA',
-            'clase' => 'UR',
-            'provincia_codigo' => '28',
-            'municipio_codigo' => '28079',
-            'provincia' => 'Madrid',
-            'municipio' => 'Madrid',
-            'direccion_text' => 'Calle Gran Vía 123',
-            'uso' => 'Residencial',
-            'superficie_m2' => 85.50,
-            'coef_participacion' => 1.0000,
-            'antiguedad_anios' => 25
-        ]);
+        // $propiedad = Propiedad::create([
+        //     'referencia_catastral' => 'TEST1234567890001AA',
+        //     'clase' => 'UR',
+        //     'provincia_codigo' => '28',
+        //     'municipio_codigo' => '28079',
+        //     'provincia' => 'Madrid',
+        //     'municipio' => 'Madrid',
+        //     'direccion_text' => 'Calle Gran Vía 123',
+        //     'uso' => 'Residencial',
+        //     'superficie_m2' => 85.50,
+        //     'coef_participacion' => 1.0000,
+        //     'antiguedad_anios' => 25
+        // ]);
 
-        UnidadConstructiva::create([
-            'propiedad_id' => $propiedad->id,
-            'tipo_unidad' => 'Vivienda',
-            'tipologia' => 'Piso',
-            'superficie_m2' => 85.50
-        ]);
+        // UnidadConstructiva::create([
+        //     'propiedad_id' => $propiedad->id,
+        //     'tipo_unidad' => 'Vivienda',
+        //     'tipologia' => 'Piso',
+        //     'superficie_m2' => 85.50
+        // ]);
 
-        Favorito::create([
-            'usuario_id' => $registrado->id,
-            'propiedad_id' => $propiedad->id,
-            'etiqueta' => 'Casa centro Madrid'
-        ]);
+        // Favorito::create([
+        //     'usuario_id' => $registrado->id,
+        //     'propiedad_id' => $propiedad->id,
+        //     'etiqueta' => 'Casa centro Madrid'
+        // ]);
 
-        Nota::create([
-            'usuario_id' => $registrado->id,
-            'propiedad_id' => $propiedad->id,
-            'texto' => 'Propiedad interesante',
-            'tipo' => 'privada'
-        ]);
+        // Nota::create([
+        //     'usuario_id' => $registrado->id,
+        //     'propiedad_id' => $propiedad->id,
+        //     'texto' => 'Propiedad interesante',
+        //     'tipo' => 'privada'
+        // ]);
     }
 }

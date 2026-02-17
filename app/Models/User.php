@@ -28,6 +28,9 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'rol',
+        'activo',
+        'ultimo_acceso'
     ];
 
     /**
@@ -49,11 +52,19 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
-            'password' => 'hashed',
+            'ultimo_acceso'     => 'datetime',
+            'password'          => 'hashed',
+            'activo'            => 'boolean',
         ];
     }
 
     // Relaciones
+
+    public function propiedades(): HasMany
+    {
+        return $this->hasMany(Propiedad::class);
+    }
+
     public function favoritos(): HasMany
     {
         return $this->hasMany(Favorito::class, 'usuario_id');
@@ -64,6 +75,15 @@ class User extends Authenticatable
         return $this->hasMany(Nota::class, 'usuario_id');
     }
 
+    public function busquedas(): HasMany
+    {
+        return $this->hasMany(Busqueda::class, 'usuario_id');
+    }
+
+      public function logsApi(): HasMany
+    {
+        return $this->hasMany(LogApi::class, 'usuario_id');
+    }
     // Funciones para la verificacion de los usuarios if (auth()->user()->isAdmin())
 
     public function isAdmin(): bool
@@ -71,14 +91,22 @@ class User extends Authenticatable
         return $this->rol === self::ROLE_ADMIN;
     }
 
-    public function isRegistrado():bool
+    public function isRegistrado(): bool
     {
         return $this->rol === self::ROLE_REGISTRADO;
     }
 
-    public function isVisitante():bool
+    public function isVisitante(): bool
     {
-        return $this->roll === self::ROLE_VISITANTE;
+        return $this->rol === self::ROLE_VISITANTE;
     }
-    
+  public function hasRole(string|array $roles): bool
+    {
+        return in_array($this->rol, (array) $roles);
+    }
+
+    public function isPremium(): bool
+    {
+        return in_array($this->rol, [self::ROLE_REGISTRADO, self::ROLE_ADMIN]);
+    }
 }
