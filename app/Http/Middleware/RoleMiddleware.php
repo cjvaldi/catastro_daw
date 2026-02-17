@@ -19,14 +19,12 @@ class RoleMiddleware
             return redirect()->route('login');
         }
 
-        // if (auth()->user()->rol !== $roles){
-        //     abort(403,'No tienes permisos para acceder a esta sección');
-        // }
+        // $rolesArray = explode(',',$roles);
 
-         if (!in_array(auth()->user()->rol, $roles)) {
+        if (!in_array(auth()->user()->rol, $rolesArray)) {
             abort(403, 'No tienes permisos para acceder a esta sección');
         }
-        
+
         return $next($request);
     }
 }

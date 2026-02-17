@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use App\Services\CatastroService;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Propiedad;
+use App\Models\Municipio;
+use App\Models\Provincia;
 
 
 
@@ -85,7 +87,7 @@ class PropiedadController extends Controller
         $request->validate([
             'referencia' => 'required|string|min:14'
         ]);
-
+        //dd(auth()->user()->rol ?? 'invitado'); // para conprobar si llega el usuario
         try {
 
             $datos = $catastro->consultarPorReferencia($request->referencia);
@@ -100,53 +102,91 @@ class PropiedadController extends Controller
     }
 
     public function guardar(Request $request)
-    {
-        // if (!auth()->check() || auth()->user()->rol === 'visitante') {
-        //     abort(403, 'Solo usuarios registrados pueden grabar los datos');
-        // }
-        if (!in_array(auth()->user()->rol, ['admin', 'registrado'])) {
-            abort(403);
-        }
-
-        // Json completo para almacenar datos
-        $datos = json_decode($request->raw_json, true);
-
-        $data = $datos['consulta_dnprcResult'];
-        $bi = $data['bico']['bi'];   // Datos principales
-
-        $propiedad = Propiedad::updateOrCreate(
-            ['referencia_catastral' => $request->referencia],
-            [
-                'clase' => $bi['idbi']['cn'] ?? null,
-                'provincia' => $bi['dt']['np'] ?? null,
-                'municipio' => $bi['dt']['nm'] ?? null,
-                'direccion_text' => $bi['ldt'] ?? null,
-                'uso' => $bi['debi']['luso'] ?? null,
-                'superficie_m2' => (float)($bi['debi']['sfc'] ?? 0),
-                'coef_participacion' => str_replace(',', '.', $bi['debi']['cpt'] ?? null),
-                'antiguedad_anios' => $bi['debi']['ant'] ?? null,
-                'raw_json' => json_encode($datos)
-            ]
-        );
-
-        // guardar en Unidades constructivas
-        // evita duplicados
-        $propiedad->unidadesConstructivas()->delete();
-
-        if (isset($data['bico']['Icons'])) {
-            foreach ($data['bico']['Icons'] as $unidad) {
-                $propiedad->unidadesConstructivas()->create([
-                    'tipo_unidad' => $unidad['lcd'] ?? null,
-                    'tipologia' => null,
-                    'superficie_m2' => null,
-                    'localizacion_externa' => null,
-                    'raw_json' => json_encode($unidad)
-                ]);
-            }
-        }
-
-        return redirect()->route('propiedades.show', $propiedad);
+{
+    if (!in_array(auth()->user()->rol, ['admin','registrado'])) {
+        abort(403);
     }
+
+    $datos = json_decode($request->raw_json, true);
+
+    $data = $datos['consulta_dnprcResult'];
+    $bico = $data['bico'];
+    $bi = $bico['bi'];
+
+    // Construir referencia correctamente
+    $rc = $bi['idbi']['rc'];
+    $referencia =
+        $rc['pc1'] .
+        $rc['pc2'] .
+        $rc['car'] .
+        $rc['cc1'] .
+        $rc['cc2'];
+
+    // Datos localización
+    $provinciaCodigo = $bi['dt']['loine']['cp'] ?? null;
+    $municipioCodigo = $bi['dt']['cmc'] ?? null;
+
+    $provinciaNombre = $bi['dt']['np'] ?? null;
+    $municipioNombre = $bi['dt']['nm'] ?? null;
+
+    // Crear provincia si no existe
+    Provincia::firstOrCreate(
+        ['codigo' => $provinciaCodigo],
+        ['nombre' => $provinciaNombre]
+    );
+
+    // Crear municipio si no existe
+    Municipio::firstOrCreate(
+        ['codigo' => $municipioCodigo],
+        [
+            'nombre' => $municipioNombre,
+            'provincia_codigo' => $provinciaCodigo
+        ]
+    );
+
+    // Guardar propiedad
+    $propiedad = Propiedad::updateOrCreate(
+        ['referencia_catastral' => $referencia],
+        [
+            'clase' => $bi['idbi']['cn'] ?? null,
+            'provincia_codigo' => $provinciaCodigo,
+            'municipio_codigo' => $municipioCodigo,
+            'provincia' => $provinciaNombre,
+            'municipio' => $municipioNombre,
+            'direccion_text' => $bi['ldt'] ?? null,
+            'uso' => $bi['debi']['luso'] ?? null,
+            'superficie_m2' => (float)($bi['debi']['sfc'] ?? 0),
+            'coef_participacion' =>
+                str_replace(',', '.', $bi['debi']['cpt'] ?? null),
+            'antiguedad_anios' => $bi['debi']['ant'] ?? null,
+            'raw_json' => $datos // 👈 guardar como array
+        ]
+    );
+
+    // ==========================
+    // UNIDADES CONSTRUCTIVAS
+    // ==========================
+
+    $propiedad->unidadesConstructivas()->delete();
+
+    if (isset($bico['lcons'])) {
+
+        foreach ($bico['lcons'] as $unidad) {
+
+            $propiedad->unidadesConstructivas()->create([
+                'tipo_unidad' => $unidad['lcd'] ?? null,
+                'tipologia' => $unidad['dvcons']['dtip'] ?? null,
+                'superficie_m2' => $unidad['dfcons']['stl'] ?? null,
+                'localizacion_externa' =>
+                    $unidad['dt']['lourb']['loint']['es'] ?? null,
+                'raw_json' => $unidad
+            ]);
+        }
+    }
+
+    return redirect()->route('propiedades.show', $propiedad);
+}
+
 
     public function testApi(Request $request, CatastroService $catastro)
     {

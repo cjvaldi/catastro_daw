@@ -13,6 +13,8 @@ class Propiedad extends Model
     protected $fillable = [
         'referencia_catastral',
         'clase',
+        'provincia_codigo',
+        'municipio_codigo',
         'provincia',
         'municipio',
         'direccion_text',
@@ -23,16 +25,16 @@ class Propiedad extends Model
         'raw_json'   //Permite auditoría
     ];
 
-    protected $casts = ['raw_json'=>'array'];
+    protected $casts = ['raw_json' => 'array'];
 
     public function provincia(): BelongsTo
     {
-        return $this->belongsTo(Provincia::class,'provincia_codigo','codigo');
+        return $this->belongsTo(Provincia::class, 'provincia_codigo', 'codigo');
     }
 
-    public function municipio():BelongsTo
+    public function municipio(): BelongsTo
     {
-        return $this->belongsTo(Municipio::class,'municipio_codigo','codigo');
+        return $this->belongsTo(Municipio::class, 'municipio_codigo', 'codigo');
     }
 
     public function unidadesConstructivas(): HasMany
@@ -40,7 +42,7 @@ class Propiedad extends Model
         return $this->hasMany(UnidadConstructiva::class);
     }
 
-    public function favoritos():HasMany
+    public function favoritos(): HasMany
     {
         return $this->hasMany(Favorito::class);
     }

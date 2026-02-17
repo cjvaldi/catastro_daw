@@ -4,10 +4,11 @@
 
 <form method="POST" action="{{ route('propiedades.guardar') }}">
     @csrf
+    
     <input type="hidden" name="referencia" value="{{ $referencia }}">
     <input type="hidden" name="raw_json" value="{{ json_encode($datos) }}">
 
-    @if(auth()->user()->rol !== 'visitante')
+    @if(in_array(auth()->user()->rol ?? 'invitado',['admin','registrado']))
         <button type="submit">Guardar propiedad</button>
     @endif
 </form>

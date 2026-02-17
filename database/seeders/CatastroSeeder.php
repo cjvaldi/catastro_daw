@@ -37,24 +37,38 @@ class CatastroSeeder extends Seeder
 
         // USUARIOS
         User::create([
-            'name' => 'Admin Principal',
-            'email' => 'admin@catastro.es',
-            'password' => Hash::make('admin123'),
-            'rol' => User::ROLE_ADMIN,
+            'name'=>'Admin Principal',
+            'email'=>'admin@catastro.es',
+            'password'=>Hash::make('admin123'),
+            'rol'=>User::ROLE_ADMIN,
         ]);
-        (
-            $registrado = User::create([
-                'name' => 'Juan Perez',
-                'email' => 'juan.perez@email.com',
-                'password' => Hash::make('password'),
-                'rol' => User::ROLE_REGISTRADO,
-            ]));
+(
+        User::create([
+            'name'=>'Juan Perez',
+            'email'=>'juan.perez@email.com',
+            'password'=>Hash::make('password'),
+            'rol'=>User::ROLE_REGISTRADO,
+        ]));
 
         User::create([
-            'name' => 'Carlos López',
-            'email' => 'carlos.lópez@email.com',
-            'password' => Hash::make('password'),
-            'rol' => User::ROLE_VISITANTE,
+            'name'=>'User Registrado',
+            'email'=>'registrado@email.com',
+            'password'=>Hash::make('password'),
+            'rol'=>User::ROLE_REGISTRADO,
+        ]);
+
+        User::create([
+            'name'=>'Carlos López',
+            'email'=>'carlos.lópez@email.com',
+            'password'=>Hash::make('password'),
+            'rol'=>User::ROLE_VISITANTE,
+        ]);
+
+        User::create([
+            'name'=>'User Visitante',
+            'email'=>'visitante@email.com',
+            'password'=>Hash::make('password'),
+            'rol'=>User::ROLE_VISITANTE,
         ]);
 
         // PROPIEDAD DE PRUEBA
