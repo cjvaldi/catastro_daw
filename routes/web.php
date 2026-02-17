@@ -3,6 +3,7 @@
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PropiedadController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\UpgradeController;
 
 /*
 |--------------------------------------------------------------------------
@@ -31,7 +32,7 @@ Route::post('/propiedades/test-api', [PropiedadController::class, 'testApi'])
 | Visitante + Registrado + Admin — Requiere login
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth','activo'])->group(function () {
 
     Route::get('/dashboard', function () {
         return view('dashboard');
@@ -54,6 +55,12 @@ Route::middleware(['auth'])->group(function () {
         ->name('profile.upgrade');
     Route::post('/upgrade', [ProfileController::class, 'requestUpgrade'])
         ->name('profile.upgrade.request');
+
+    // Upgrade Premium — solo visitantes
+Route::get('/upgrade', [UpgradeController::class, 'show'])
+    ->name('upgrade.show');
+Route::post('/upgrade', [UpgradeController::class, 'upgrade'])
+    ->name('upgrade.process');    
 });
 
 /*
@@ -61,7 +68,7 @@ Route::middleware(['auth'])->group(function () {
 | Solo Registrado (Premium) + Admin — Escritura en BD
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth', 'role:registrado,admin'])->group(function () {
+Route::middleware(['auth','activo','role:registrado,admin'])->group(function () {
 
     Route::post('/propiedades/guardar', [PropiedadController::class, 'guardar'])
         ->name('propiedades.guardar');
@@ -81,7 +88,7 @@ Route::middleware(['auth', 'role:registrado,admin'])->group(function () {
 | Solo Admin — Panel completo
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth', 'role:admin'])
+Route::middleware(['auth', 'activo','role:admin'])
     ->prefix('admin')
     ->name('admin.')
     ->group(function () {

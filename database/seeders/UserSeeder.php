@@ -14,46 +14,31 @@ class UserSeeder extends Seeder
      */
     public function run(): void
     {
+        // Admin
         User::create([
-            'name'=>'Admin Principal',
-            'email'=>'admin@catastro.es',
-            'password'=>Hash::make('admin123'),
-            'rol'=>User::ROLE_ADMIN,
+            'name'     => 'Administrador',
+            'email'    => 'admin@catastro.test',
+            'password' => Hash::make('Admin1234!'),
+            'rol'      => User::ROLE_ADMIN,
+            'activo'   => true,
         ]);
 
+        // Registrado (Premium)
         User::create([
-            'name'=>'Juan Perez',
-            'email'=>'juan.perez@email.com',
-            'password'=>Hash::make('password'),
-            'rol'=>User::ROLE_REGISTRADO,
+            'name'     => 'Usuario Premium',
+            'email'    => 'premium@catastro.test',
+            'password' => Hash::make('Premium1234!'),
+            'rol'      => User::ROLE_REGISTRADO,
+            'activo'   => true,
         ]);
 
+        // Visitante (Free)
         User::create([
-            'name'=>'Maria Garacia',
-            'email'=>'maria.garcia@email.com',
-            'password'=>Hash::make('password'),
-            'rol'=>User::ROLE_REGISTRADO,
-        ]);
-
-        User::create([
-            'name'=>'User Registrado',
-            'email'=>'registrado@email.com',
-            'password'=>Hash::make('password'),
-            'rol'=>User::ROLE_REGISTRADO,
-        ]);
-
-        User::create([
-            'name'=>'Carlos López',
-            'email'=>'carlos.lópez@email.com',
-            'password'=>Hash::make('password'),
-            'rol'=>User::ROLE_VISITANTE,
-        ]);
-
-        User::create([
-            'name'=>'User Visitante',
-            'email'=>'visitante@email.com',
-            'password'=>Hash::make('password'),
-            'rol'=>User::ROLE_VISITANTE,
+            'name'     => 'Usuario Visitante',
+            'email'    => 'visitante@catastro.test',
+            'password' => Hash::make('Visitante1234!'),
+            'rol'      => User::ROLE_VISITANTE,
+            'activo'   => true,
         ]);
     }
 }
