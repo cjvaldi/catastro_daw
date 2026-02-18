@@ -1,13 +1,19 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $title ?? 'Catastro DAW' }}</title>
+
+    {{-- Favicon personalizado --}}
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏠</text></svg>">
+
     <link rel="stylesheet" href="{{ asset('css/app.css') }}">
 </head>
+
 <body style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px;">
-    
+
     <div style="width: 100%; max-width: 450px;">
         {{-- Logo y título --}}
         <div style="text-align: center; margin-bottom: 24px;">
@@ -39,4 +45,5 @@
     </div>
 
 </body>
+
 </html>

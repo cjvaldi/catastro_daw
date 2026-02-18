@@ -4,61 +4,61 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title', 'Catastro DAW')</title>
+    <title>{{ $title ?? 'Catastro DAW' }}</title>
+    
+    {{-- Favicon personalizado --}}
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏠</text></svg>">
+    
     <link rel="stylesheet" href="{{ asset('css/app.css') }}">
 </head>
 
 <body>
 
     {{-- HEADER UNIFICADO --}}
-    <header>
-        <div class="container">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <h1>
-                    <a href="{{ route('home') }}" style="color: white; text-decoration: none;">
-                        🏠 Catastro DAW
-                    </a>
-                </h1>
-
-                <nav style="display: flex; align-items: center; gap: 20px;">
-                    {{-- Menú público --}}
-                    @guest
+<header>
+    <div class="container">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h1>
+                <a href="{{ route('home') }}" style="color: white; text-decoration: none;">
+                    🏠 Catastro DAW
+                </a>
+            </h1>
+            
+            <nav style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
+                {{-- Menú público --}}
+                @guest
                     <a href="{{ route('home') }}">Inicio</a>
                     <a href="{{ route('login') }}">Iniciar Sesión</a>
                     <a href="{{ route('register') }}" class="btn btn-warning" style="padding: 6px 16px;">
                         Registrarse
                     </a>
-                    @endguest
+                @endguest
 
-                    {{-- Menú autenticado --}}
-                    @auth
-                    {{-- Nombre del usuario --}}
-                    <span style="color: rgba(255,255,255,0.9); font-weight: 600;">
+                {{-- Menú autenticado --}}
+                @auth
+                    {{-- Nombre del usuario (con límite) --}}
+                    <span style="color: rgba(255,255,255,0.9); font-weight: 600; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ auth()->user()->name }}">
                         👤 {{ auth()->user()->name }}
                         @if(auth()->user()->isPremium())
-                        <span class="badge-premium" style="margin-left: 8px;">⭐ Premium</span>
+                            <span class="badge-premium" style="margin-left: 8px;">⭐</span>
                         @endif
                     </span>
 
                     {{-- Navegación según rol --}}
-                    <a href="{{ route('dashboard') }}">Mi Panel</a>
-                    <a href="{{ route('propiedades.index') }}">Propiedades</a>
-                    <a href="{{ route('propiedades.historial') }}">Historial</a>
-
-                    @if(auth()->user()->isPremium())
-                    <a href="{{ route('propiedades.formBuscarDireccion') }}">
-                        🔍 Búsqueda Avanzada
-                    </a>
-                    @else
-                    <a href="{{ route('upgrade.show') }}" class="btn btn-warning" style="padding: 6px 16px;">
-                        ⭐ Hazte Premium
-                    </a>
+                    <a href="{{ route('dashboard') }}">🏠 Inicio</a>
+                    <a href="{{ route('propiedades.index') }}">📂 Mis Propiedades</a>
+                    <a href="{{ route('propiedades.historial') }}">📊 Historial</a>
+                    
+                    @if(!auth()->user()->isPremium())
+                        <a href="{{ route('upgrade.show') }}" class="btn btn-warning" style="padding: 6px 16px;">
+                            ⭐ Premium
+                        </a>
                     @endif
 
                     @if(auth()->user()->isAdmin())
-                    <a href="{{ route('admin.dashboard') }}" style="color: #fbbf24;">
-                        🔧 Admin
-                    </a>
+                        <a href="{{ route('admin.dashboard') }}" style="color: #fbbf24;">
+                            🔧 Admin
+                        </a>
                     @endif
 
                     {{-- Cerrar sesión --}}
@@ -68,11 +68,11 @@
                             Salir
                         </button>
                     </form>
-                    @endauth
-                </nav>
-            </div>
+                @endauth
+            </nav>
         </div>
-    </header>
+    </div>
+</header>
 
     {{-- CONTENIDO PRINCIPAL --}}
     <main class="container" style="min-height: calc(100vh - 200px); padding-top: 20px;">
