@@ -1,38 +1,91 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-    <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <meta name="csrf-token" content="{{ csrf_token() }}">
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@yield('title', 'Catastro DAW')</title>
+    <link rel="stylesheet" href="{{ asset('css/app.css') }}">
+</head>
+<body>
+    
+    {{-- HEADER UNIFICADO --}}
+    <header>
+        <div class="container">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h1>
+                    <a href="{{ route('home') }}" style="color: white; text-decoration: none;">
+                        🏠 Catastro DAW
+                    </a>
+                </h1>
+                
+                <nav style="display: flex; align-items: center; gap: 20px;">
+                    {{-- Menú público --}}
+                    @guest
+                        <a href="{{ route('home') }}">Inicio</a>
+                        <a href="{{ route('login') }}">Iniciar Sesión</a>
+                        <a href="{{ route('register') }}" class="btn btn-warning" style="padding: 6px 16px;">
+                            Registrarse
+                        </a>
+                    @endguest
 
-        <title>{{ config('app.name', 'Laravel') }}</title>
+                    {{-- Menú autenticado --}}
+                    @auth
+                        {{-- Nombre del usuario --}}
+                        <span style="color: rgba(255,255,255,0.9); font-weight: 600;">
+                            👤 {{ auth()->user()->name }}
+                            @if(auth()->user()->isPremium())
+                                <span class="badge-premium" style="margin-left: 8px;">⭐ Premium</span>
+                            @endif
+                        </span>
 
-        <!-- Fonts -->
-        <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+                        {{-- Navegación según rol --}}
+                        <a href="{{ route('dashboard') }}">Mi Panel</a>
+                        <a href="{{ route('propiedades.index') }}">Propiedades</a>
+                        <a href="{{ route('propiedades.historial') }}">Historial</a>
+                        
+                        @if(auth()->user()->isPremium())
+                            <a href="{{ route('propiedades.formBuscarDireccion') }}">
+                                🔍 Búsqueda Avanzada
+                            </a>
+                        @else
+                            <a href="{{ route('upgrade.show') }}" class="btn btn-warning" style="padding: 6px 16px;">
+                                ⭐ Hazte Premium
+                            </a>
+                        @endif
 
-        <!-- Scripts -->
-        @vite(['resources/css/app.css', 'resources/js/app.js'])
-    </head>
-    <body class="font-sans antialiased">
-        <div class="min-h-screen bg-gray-100">
-            @include('layouts.navigation')
+                        @if(auth()->user()->isAdmin())
+                            <a href="{{ route('admin.dashboard') }}" style="color: #fbbf24;">
+                                🔧 Admin
+                            </a>
+                        @endif
 
-            <!-- Page Heading -->
-            @isset($header)
-                <header class="bg-white shadow">
-                    <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-                        {{ $header }}
-                    </div>
-                </header>
-            @endisset
-
-            <!-- Page Content -->
-             {{-- Este es un comentario en Blade --}}
-            <main>
-                {{-- $slot --}} 
-                  @yield('content')
-            </main>
+                        {{-- Cerrar sesión --}}
+                        <form method="POST" action="{{ route('logout') }}" style="display: inline;">
+                            @csrf
+                            <button type="submit" class="btn btn-secondary" style="padding: 6px 12px; font-size: 14px;">
+                                Salir
+                            </button>
+                        </form>
+                    @endauth
+                </nav>
+            </div>
         </div>
-    </body>
+    </header>
+
+    {{-- CONTENIDO PRINCIPAL --}}
+    <main class="container" style="min-height: calc(100vh - 200px);">
+        @yield('content')
+    </main>
+
+    {{-- FOOTER UNIFICADO --}}
+    <footer>
+        <p>&copy; 2026 Catastro DAW - Proyecto Académico</p>
+        <p style="margin-top: 8px;">
+            <a href="{{ route('manual') }}" style="color: #9ca3af; text-decoration: underline;">
+                📖 Manual de Uso
+            </a>
+        </p>
+    </footer>
+
+</body>
 </html>

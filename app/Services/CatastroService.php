@@ -128,7 +128,7 @@ class CatastroService
     ): void {
         try {
             LogApi::create([
-                'usuario_id' => auth()->id,
+                'usuario_id' => auth()->id(),
                 'endpoint' => $endpoint,
                 'params_json'=>$params,
                 'response_code'=>$responseCode,

@@ -33,13 +33,12 @@ class PropiedadController extends Controller
         $request->validate([
             'referencia' => 'required|string|min:14|max:20'
         ]);
-
+    // ✅ DEBUG TEMPORAL
+    \Log::info('=== BÚSQUEDA INICIADA ===', [
+        'referencia' => $request->referencia,
+    ]);
         try {
             $datos = $catastro->consultarPorReferencia($request->referencia);
-
-
-            // ✅ DEBUG TEMPORAL — Ver estructura real
-            // dd($datos['consulta_dnprcResult']['bico']['bi']['dt']);
 
             // Registrar busqqueda si esta autenticado
             $this->registrarBusqueda(
