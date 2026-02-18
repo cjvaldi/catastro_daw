@@ -227,7 +227,7 @@
     </div>
 </div>
 
-
+ 
 
 {{-- CSS para impresión A4 - 1 PÁGINA --}}
 <style>
