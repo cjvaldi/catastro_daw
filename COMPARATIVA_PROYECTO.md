@@ -198,6 +198,8 @@ catastro_daw/
 │   ├── Models/
 │   │   ├── User.php (✅ Con roles y scopes)
 │   │   ├── Propiedad.php (✅ Con relaciones)
+│   │   ├── Municipio.php (✅ Con relaciones)
+│   │   ├── Provincia.php (✅ Con relaciones)
 │   │   ├── Favorito.php (✅ Completo)
 │   │   ├── Nota.php (✅ Completo)
 │   │   ├── Busqueda.php (✅ Completo)
@@ -328,6 +330,15 @@ Si se continuara el desarrollo del proyecto:
 5. **Estadísticas avanzadas** para Admin (gráficas)
 6. **Notificaciones** por email (nuevas propiedades, etc.)
 7. **API RESTful** para app móvil
+
+---
+
+## 10. DEUDA TÉCNICA Y MEJORAS FUTURAS
+
+### CSS y Estilos
+- **Estado actual:** Mezcla de clases CSS y estilos inline
+- **Recomendación:** Refactorizar estilos inline a clases reutilizables
+- **Impacto:** Mejor mantenibilidad sin afectar funcionalidad
 
 ---
 

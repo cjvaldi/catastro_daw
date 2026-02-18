@@ -1,8 +1,22 @@
 /* ============================================
-   CATASTRO_DAW - Estilos Principales
-   HTML5 + CSS3 Puro
-   ALUMNO : Cristian Valdivieso VAlenzuela
-   ============================================ */
+CATASTRO_DAW - Estilos Principales
+HTML5 + CSS3 Puro
+ALUMNO : Cristian Valdivieso VAlenzuela
+============================================ */
+
+/*
+ * NOTA DE DESARROLLO:
+ *
+ * Este proyecto utiliza una combinación de clases CSS reutilizables
+ * y estilos inline para componentes únicos.
+ * 
+ * En un proyecto de producción real, se refactorizarían todos los
+ * estilos inline a clases CSS para mejorar mantenibilidad.
+ * 
+ * Decisión de diseño: priorizar funcionalidad completa sobre
+ * optimización de CSS en fase académica.
+ *
+ */
 
 /* --- Reset básico --- */
 * {
@@ -12,7 +26,7 @@
 }
 
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
     line-height: 1.6;
     color: #333;
     background-color: #f5f5f5;
@@ -51,7 +65,7 @@ header {
     background-color: #2563eb;
     color: white;
     padding: 20px 0;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 header h1 {
@@ -74,14 +88,14 @@ nav a {
 }
 
 nav a:hover {
-    background-color: rgba(255,255,255,0.2);
+    background-color: rgba(255, 255, 255, 0.2);
 }
 
 /* --- Cards --- */
 .card {
     background: white;
     border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     padding: 24px;
     margin-bottom: 20px;
 }
@@ -120,7 +134,7 @@ nav a:hover {
 .form-select:focus {
     outline: none;
     border-color: #2563eb;
-    box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
 /* --- Botones --- */
@@ -294,7 +308,7 @@ nav a:hover {
 }
 
 .result-item:hover {
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .result-header {
@@ -306,7 +320,7 @@ nav a:hover {
 
 /* --- Referencia catastral --- */
 .ref-catastral {
-    font-family: 'Courier New', monospace;
+    font-family: "Courier New", monospace;
     font-size: 16px;
     font-weight: 700;
     color: #1e40af;
@@ -335,17 +349,16 @@ header nav {
     header h1 {
         font-size: 18px;
     }
-    
+
     header nav {
         gap: 10px;
         font-size: 14px;
     }
-    
+
     header nav span {
         max-width: 120px !important;
     }
 }
-
 
 @media print {
     /* Convertir grid a tabla para mejor impresión */

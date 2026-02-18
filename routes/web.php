@@ -6,7 +6,6 @@ use App\Http\Controllers\UpgradeController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\AdminController;
 
-
 /*
 |--------------------------------------------------------------------------
 | Rutas públicas — Anónimo
@@ -21,11 +20,9 @@ Route::get('/', function () {
     return view('welcome');
 })->name('home');
 
+// Búsqueda pública por referencia
 Route::post('/propiedades/buscar', [PropiedadController::class, 'buscar'])
     ->name('propiedades.buscar');
-
-Route::get('/propiedades', [PropiedadController::class, 'index'])
-    ->name('propiedades.index');
 
 /*
 |--------------------------------------------------------------------------
@@ -38,13 +35,9 @@ Route::middleware(['auth', 'activo'])->group(function () {
         return view('dashboard');
     })->middleware('verified')->name('dashboard');
 
-    // Perfil
-    Route::get('/profile', [ProfileController::class, 'edit'])
-        ->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])
-        ->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])
-        ->name('profile.destroy');
+    // Ver mis propiedades guardadas
+    Route::get('/propiedades', [PropiedadController::class, 'index'])
+        ->name('propiedades.index');
 
     // Ver detalle de propiedad
     Route::get('/propiedades/{propiedad}', [PropiedadController::class, 'show'])
@@ -54,9 +47,17 @@ Route::middleware(['auth', 'activo'])->group(function () {
     Route::get('/historial', [PropiedadController::class, 'historial'])
         ->name('propiedades.historial');
 
-    // GUARDAR PROPIEDAD - Todos los autenticados (visitante incluido)
+    // Guardar propiedad
     Route::post('/propiedades/guardar', [PropiedadController::class, 'guardar'])
         ->name('propiedades.guardar');
+
+    // Perfil
+    Route::get('/profile', [ProfileController::class, 'edit'])
+        ->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])
+        ->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])
+        ->name('profile.destroy');
 
     // Upgrade a Premium
     Route::get('/upgrade', [UpgradeController::class, 'show'])
@@ -67,7 +68,7 @@ Route::middleware(['auth', 'activo'])->group(function () {
 
 /*
 |--------------------------------------------------------------------------
-| Solo Registrado (Premium) + Admin  - Favoritos y Notas
+| Solo Registrado (Premium) + Admin — Favoritos y Notas
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth', 'activo', 'role:registrado,admin'])->group(function () {
@@ -77,30 +78,18 @@ Route::middleware(['auth', 'activo', 'role:registrado,admin'])->group(function (
         return view('propiedades.buscar-direccion');
     })->name('propiedades.formBuscarDireccion');
 
-    Route::post(
-        '/propiedades/buscar-direccion',
-        [PropiedadController::class, 'buscarPorDireccion']
-    )
+    Route::post('/propiedades/buscar-direccion', [PropiedadController::class, 'buscarPorDireccion'])
         ->name('propiedades.buscarDireccion');
 
-    // FAVORITOS - Solo Premium
-    Route::post(
-        '/propiedades/{propiedad}/favorito',
-        [PropiedadController::class, 'toggleFavorito']
-    )
+    // Favoritos
+    Route::post('/propiedades/{propiedad}/favorito', [PropiedadController::class, 'toggleFavorito'])
         ->name('propiedades.favorito');
 
-    // NOTAS - Solo Premium
-    Route::post(
-        '/propiedades/{propiedad}/nota',
-        [PropiedadController::class, 'guardarNota']
-    )
+    // Notas
+    Route::post('/propiedades/{propiedad}/nota', [PropiedadController::class, 'guardarNota'])
         ->name('propiedades.nota');
 
-    Route::delete(
-        '/propiedades/{propiedad}/nota/{nota}',
-        [PropiedadController::class, 'eliminarNota']
-    )
+    Route::delete('/propiedades/{propiedad}/nota/{nota}', [PropiedadController::class, 'eliminarNota'])
         ->name('propiedades.nota.eliminar');
 });
 

@@ -13,12 +13,12 @@ class ProvinciaSeeder extends Seeder
      */
     public function run(): void
     {
-        Provincia::insert([
-        ['codigo'=>'28', 'nombre'=>'Madrid'],
-        ['codigo'=>'08','nombre'=>'Barcelona'],
-        ['codigo'=>'41', 'nombre'=>'Sevilla'],
-        ['codigo'=>'46', 'nombre'=>'Valencia'],
-        ['codigo'=>'29', 'nombre'=>'Málaga'],
-        ]);
+        // Provincia::insert([
+        // ['codigo'=>'28', 'nombre'=>'Madrid'],
+        // ['codigo'=>'08','nombre'=>'Barcelona'],
+        // ['codigo'=>'41', 'nombre'=>'Sevilla'],
+        // ['codigo'=>'46', 'nombre'=>'Valencia'],
+        // ['codigo'=>'29', 'nombre'=>'Málaga'],
+        // ]);
     }
 }
