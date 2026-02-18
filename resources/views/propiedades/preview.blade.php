@@ -76,8 +76,8 @@
             <div class="data-value">{{ $debi['sfc'] ?? 'N/A' }} m²</div>
         </div>
         <div>
-            <div class="data-label">Antigüedad</div>
-            <div class="data-value">{{ $debi['ant'] ?? 'N/A' }} años</div>
+            <div class="data-label">Año Construcción</div>
+            <div class="data-value">{{ $debi['ant'] ?? 'N/A' }} .</div>
         </div>
         <div>
             <div class="data-label">Provincia/Municipio</div>

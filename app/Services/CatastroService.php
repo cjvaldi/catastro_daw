@@ -28,12 +28,12 @@ class CatastroService
     }
 
     // Consulta por Dirección (Premium)
-    public function consultaPorDireccion(
+    public function consultarPorDireccion(
         string $provincia,
         string $municipio,
         string $tipoVia,
         string $nombreVia,
-        string $numero = ''
+        ?string $numero = null
     ): array {
         return $this->llamarApi('/Consulta_DNPLOC', [
             'Provincia' => strtoupper(trim($provincia)),
@@ -62,7 +62,7 @@ class CatastroService
                 params: $params,
                 responseCode: $response->status(),
                 duracion: $duracion,
-                respondeJson: $response->body(),
+                responseJson: $response->body(),
             );
 
             if (!$response->successful()) {
@@ -74,9 +74,17 @@ class CatastroService
 
             // Verificando errros interno del Api
             if ($this->tieneErrorApi($datos)) {
-                throw new \Exception(
-                    'La referencia catastral no existe o no tiene datos públicos disponibles.'
-                );
+                // Extraer mensaje de error específico si existe
+                $lerr = $datos['consulta_dnprcResult']['lerr']
+                    ?? $datos['consulta_dnplocResult']['lerr']
+                    ?? null;
+
+                $mensajeError = 'No se encontraron resultados.';
+
+                if ($lerr && isset($lerr[0]['des'])) {
+                    $mensajeError = $lerr[0]['des'];
+                }
+                throw new \Exception($mensajeError);
             }
 
             return $datos;
@@ -113,6 +121,11 @@ class CatastroService
 
         if (!$control) return true;
 
+        // Si hay errores (cuerr > 0)
+        if (isset($control['cuerr']) && (int)$control['cuerr'] > 0) {
+            return true;
+        }
+
         // cudnp = 0 significa sin resultados
         return isset($control['cudnp']) && (int)$control['cudnp'] === 0;
     }
@@ -122,7 +135,7 @@ class CatastroService
         array $params,
         int $responseCode,
         int $duracion,
-        ?string $respondeJson =  null,
+        ?string $responseJson =  null,
         ?string $errorCode = null,
         ?string $errorDesc = null,
     ): void {
@@ -130,18 +143,16 @@ class CatastroService
             LogApi::create([
                 'usuario_id' => auth()->id(),
                 'endpoint' => $endpoint,
-                'params_json'=>$params,
-                'response_code'=>$responseCode,
-                'duration_ms'=>$duracion,
-                'response_json'=>$respondeJson,
-                'error_code'=>$errorCode,
-                'error_desc'=>$errorDesc,
+                'params_json' => $params,
+                'response_code' => $responseCode,
+                'duration_ms' => $duracion,
+                'response_json' => $responseJson,
+                'error_code' => $errorCode,
+                'error_desc' => $errorDesc,
             ]);
         } catch (\Exception $e) {
             // No se interrumple el flujo si falla el log
-            Log::error('Error registrando log API: '. $e->getMessage());
+            Log::error('Error registrando log API: ' . $e->getMessage());
         }
     }
-
-
 }

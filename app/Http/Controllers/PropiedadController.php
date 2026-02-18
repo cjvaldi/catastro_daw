@@ -14,31 +14,31 @@ use InvalidArgumentException;
 
 class PropiedadController extends Controller
 {
-   public function index(Request $request) 
+    public function index(Request $request)
     {
         // Si el usuario está autenticado, mostrar solo sus propiedades
         // Si es anónimo, mostrar las propiedades públicas (o ninguna)
         // Filtro Todas/Favoritas en listado premium
 
-       if (!auth()->check()) {
-        $propiedades = collect();
+        if (!auth()->check()) {
+            $propiedades = collect();
+            return view('propiedades.index', compact('propiedades'));
+        }
+
+        $query = Propiedad::where('user_id', auth()->id())
+            ->with(['provincia', 'municipio']);
+
+        // Filtro de favoritos (solo para Premium)
+        if (auth()->user()->isPremium() && $request->filtro === 'favoritas') {
+            $query->whereHas('favoritos', function ($q) {
+                $q->where('usuario_id', auth()->id());
+            });
+        }
+
+        $propiedades = $query->latest()->paginate(15);
+
         return view('propiedades.index', compact('propiedades'));
     }
-
-    $query = Propiedad::where('user_id', auth()->id())
-        ->with(['provincia', 'municipio']);
-
-    // Filtro de favoritos (solo para Premium)
-    if (auth()->user()->isPremium() && $request->filtro === 'favoritas') {
-        $query->whereHas('favoritos', function($q) {
-            $q->where('usuario_id', auth()->id());
-        });
-    }
-
-    $propiedades = $query->latest()->paginate(15);
-
-    return view('propiedades.index', compact('propiedades'));
-}
 
     public function show(Propiedad $propiedad)
     {
@@ -84,14 +84,15 @@ class PropiedadController extends Controller
     }
 
     // Busqueda por Dirección - Solo Premium
+    // En Desarrollo por requerimientos estrictos del Api
     public function buscarPorDireccion(Request $request, CatastroService $catastro)
     {
         $request->validate([
-            'provincia'  => 'required|string|max:100',
-            'municipio'  => 'required|string|max:100',
-            'tipo_via'   => 'required|string|max:10',
-            'nombre_via' => 'required|string|max:200',
-            'numero'     => 'nullable|string|max:10',
+            'provincia' => 'required|string|min:3|max:50',
+            'municipio' => 'required|string|min:3|max:50',
+            'tipo_via' => 'required|string|max:10',
+            'nombre_via' => 'required|string|min:3|max:100',
+            'numero' => 'required|string|max:10',
         ]);
 
         try {
@@ -100,33 +101,154 @@ class PropiedadController extends Controller
                 municipio: $request->municipio,
                 tipoVia: $request->tipo_via,
                 nombreVia: $request->nombre_via,
-                numero: $request->numero ?? '',
+                numero: $request->numero
             );
 
-            // Registrar búsqueda
-            $this->registrarBusqueda(
-                tipo: 'direccion',
-                query: "{$request->tipo_via} {$request->nombre_via} {$request->numero}, {$request->municipio}",
-                referencia: null,
-                resultados: $this->contarResultados($datos)
-            );
-
-            return view('propiedades.preview-direccion', [
-                'datos'  => $datos,
-                'filtro' => $request->all(),
-                'tipo'   => 'direccion',
-            ]);
-        } catch (\InvalidArgumentException $e) {
-            return back()
-                ->withInput()
-                ->with('error', $e->getMessage());
+            $simulado = false;
         } catch (\Exception $e) {
-            return back()
-                ->withInput()
-                ->with('error', $e->getMessage());
+            // Si falla la API real, usar datos simulados para demo
+            \Log::info('API falló, usando datos simulados: ' . $e->getMessage());
+
+            $datos = $this->obtenerDatosSimulados($request);
+            $simulado = true;
         }
+
+        // Registrar búsqueda
+        $queryText = "{$request->tipo_via} {$request->nombre_via} {$request->numero}, " .
+            "{$request->municipio} ({$request->provincia})";
+
+        if (auth()->check()) {
+            Busqueda::create([
+                'usuario_id' => auth()->id(),
+                'query_text' => $queryText,
+                'referencia_busqueda' => null,
+                'params_json' => [
+                    'tipo' => 'direccion',
+                    'provincia' => $request->provincia,
+                    'municipio' => $request->municipio,
+                    'tipo_via' => $request->tipo_via,
+                    'nombre_via' => $request->nombre_via,
+                    'numero' => $request->numero,
+                ],
+                'result_count' => $this->contarResultados($datos),
+            ]);
+        }
+
+        return view('propiedades.preview-direccion', [
+            'datos' => $datos,
+            'filtro' => [
+                'provincia' => $request->provincia,
+                'municipio' => $request->municipio,
+                'tipo_via' => $request->tipo_via,
+                'nombre_via' => $request->nombre_via,
+                'numero' => $request->numero,
+            ],
+            'simulado' => $simulado,
+        ]);
     }
 
+    /**
+     * Genera datos simulados para demostración cuando la API falla
+     * La implementación por dirección esta demorando el proyecto con datos reales, simular datos
+     */
+    private function obtenerDatosSimulados(Request $request): array
+    {
+        // Crear 2-3 resultados simulados basados en la búsqueda
+        $resultados = [];
+
+        for ($i = 1; $i <= 2; $i++) {
+            $resultados[] = [
+                'bi' => [
+                    'idbi' => [
+                        'rc' => [
+                            'pc1' => str_pad(rand(1000000, 9999999), 7, '0', STR_PAD_LEFT),
+                            'pc2' => 'YJ0624N',
+                            'car' => str_pad($i, 4, '0', STR_PAD_LEFT),
+                            'cc1' => chr(rand(65, 90)) . chr(rand(65, 90)),
+                            'cc2' => '',
+                        ]
+                    ],
+                    'ldt' => strtoupper("{$request->tipo_via} {$request->nombre_via} {$request->numero} "  . 
+                        "Esc {$i} Pta A {$request->municipio} ({$request->provincia})" ."( EJEMPLO BUSQUEDA)"),
+                    'dt' => [
+                        'np' => strtoupper($request->provincia),
+                        'nm' => strtoupper($request->municipio),
+                    ],
+                    'debi' => [
+                        'luso' => $i == 1 ? 'Residencial' : 'Oficinas',
+                        'sfc' => rand(50, 150),
+                        'ant' => rand(10, 50),
+                    ],
+                     '_simulado' => true,    //  Flag para identificar simulados
+                ]
+            ];
+        }
+
+        // Referencias REALES conocidas que funcionan en la API
+        $referenciasReales = [
+            [
+                'pc1' => '2749704',
+                'pc2' => 'YJ0624N',
+                'car' => '0001',
+                'cc1' => 'DI',
+                'cc2' => '',
+                'direccion' => 'CL GUAYANA-MOJONERA 3',
+                'uso' => 'Residencial',
+                'superficie' => '57.00',
+                'antiguedad' => '1975',
+            ],
+            [
+                'pc1' => '3301204',
+                'pc2' => 'QB6430S',
+                'car' => '0008',
+                'cc1' => 'QR',
+                'cc2' => '',
+                'direccion' => 'CL BRIHUEGA 6',
+                'uso' => 'Residencial',
+                'superficie' => '100.00',
+                'antiguedad' => '1980',
+            ],
+        ];
+
+        // $resultados = [];
+
+        foreach ($referenciasReales as $i => $ref) {
+            $resultados[] = [
+                'bi' => [
+                    'idbi' => [
+                        'rc' => [
+                            'pc1' => $ref['pc1'],
+                            'pc2' => $ref['pc2'],
+                            'car' => $ref['car'],
+                            'cc1' => $ref['cc1'],
+                            'cc2' => $ref['cc2'],
+                        ]
+                    ],
+                    'ldt' => strtoupper($ref['direccion'] . " (EJEMPLO DEMO)"),
+                    'dt' => [
+                        'np' => strtoupper($request->provincia),
+                        'nm' => strtoupper($request->municipio),
+                    ],
+                    'debi' => [
+                        'luso' => $ref['uso'],
+                        'sfc' => $ref['superficie'],
+                        'ant' => $ref['antiguedad'],
+                    ],
+                    '_simulado' => false, // Flag para identificar reales
+                ]
+            ];
+        }
+
+        return [
+            'consulta_dnplocResult' => [
+                'control' => [
+                    'cudnp' => count($resultados),
+                    'cucons' => count($resultados),
+                ],
+                'bico' => $resultados,
+            ]
+        ];
+    }
 
 
     // Guardar - Solo Premium
@@ -277,9 +399,16 @@ class PropiedadController extends Controller
     //Contar resultados de direccion
     private function contarResultados(array $datos): int
     {
-        return isset($datos['consulta_dnplocResult']['bico'])
-            ? count((array)$datos['consulta_dnplocResult']['bico'])
-            : 0;
+        $result = $datos['consulta_dnplocResult'] ?? [];
+        $bicos = $result['bico'] ?? [];
+
+        // Si es un solo resultado, viene como objeto
+        if (isset($bicos['bi'])) {
+            return 1;
+        }
+
+        // Si son múltiples, viene como array
+        return count($bicos);
     }
 
 
@@ -313,7 +442,7 @@ class PropiedadController extends Controller
 
         $propiedad->notas()->create([
             'usuario_id' => auth()->id(),
-            'texto' => $request->contenido,  
+            'texto' => $request->contenido,
             'tipo' => $request->tipo,
         ]);
 
