@@ -17,6 +17,21 @@ body {
     color: #333;
     background-color: #f5f5f5;
 }
+/* Asegurar que el contenido no solape el header */
+main.container {
+    margin-top: 20px;
+    padding-top: 20px;
+}
+
+header {
+    position: relative;
+    z-index: 100;
+}
+
+main {
+    position: relative;
+    z-index: 1;
+}
 
 /* --- Container --- */
 .container {
@@ -308,4 +323,33 @@ footer {
     text-align: center;
     padding: 20px 0;
     margin-top: 40px;
+}
+
+@media print {
+    /* Convertir grid a tabla para mejor impresión */
+    .grid-4 {
+        display: table !important;
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .grid-4 > div {
+        display: table-row !important;
+    }
+
+    .grid-4 > div .data-label,
+    .grid-4 > div .data-value {
+        display: table-cell !important;
+        border: 1px solid #ddd;
+        padding: 2mm;
+    }
+
+    .grid-4 > div .data-label {
+        width: 35%;
+        background: #f5f5f5 !important;
+    }
+
+    .grid-4 > div .data-value {
+        width: 65%;
+    }
 }

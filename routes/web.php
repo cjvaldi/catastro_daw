@@ -51,6 +51,10 @@ Route::middleware(['auth', 'activo'])->group(function () {
     Route::get('/historial', [PropiedadController::class, 'historial'])
         ->name('propiedades.historial');
 
+    // GUARDAR PROPIEDAD - Todos los autenticados (visitante incluido)
+    Route::post('/propiedades/guardar', [PropiedadController::class, 'guardar'])
+        ->name('propiedades.guardar');
+
     // Upgrade a Premium
     Route::get('/upgrade', [UpgradeController::class, 'show'])
         ->name('upgrade.show');
@@ -60,7 +64,7 @@ Route::middleware(['auth', 'activo'])->group(function () {
 
 /*
 |--------------------------------------------------------------------------
-| Solo Registrado (Premium) + Admin
+| Solo Registrado (Premium) + Admin  - Favoritos y Notas
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth', 'activo', 'role:registrado,admin'])->group(function () {
@@ -74,20 +78,19 @@ Route::middleware(['auth', 'activo', 'role:registrado,admin'])->group(function (
         [PropiedadController::class, 'buscarPorDireccion'])
         ->name('propiedades.buscarDireccion');
 
-    // Guardar propiedad
-    Route::post('/propiedades/guardar',
-        [PropiedadController::class, 'guardar'])
-        ->name('propiedades.guardar');
+   // FAVORITOS - Solo Premium
+    Route::post('/propiedades/{propiedad}/favorito',
+        [PropiedadController::class, 'toggleFavorito'])
+        ->name('propiedades.favorito');
 
-    // Favoritos (pendiente implementar)
-    // Route::post('/propiedades/{propiedad}/favorito',
-    //     [PropiedadController::class, 'toggleFavorito'])
-    //     ->name('propiedades.favorito');
+    // NOTAS - Solo Premium
+    Route::post('/propiedades/{propiedad}/nota',
+        [PropiedadController::class, 'guardarNota'])
+        ->name('propiedades.nota');
 
-    // Notas (pendiente implementar)
-    // Route::post('/propiedades/{propiedad}/nota',
-    //     [PropiedadController::class, 'guardarNota'])
-    //     ->name('propiedades.nota');
+    Route::delete('/propiedades/{propiedad}/nota/{nota}',
+        [PropiedadController::class, 'eliminarNota'])
+        ->name('propiedades.nota.eliminar');
 });
 
 /*

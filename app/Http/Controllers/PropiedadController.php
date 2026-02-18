@@ -9,17 +9,36 @@ use App\Models\Propiedad;
 use App\Models\Municipio;
 use App\Models\Provincia;
 use App\Models\Busqueda;
+use App\Models\Nota;
 use InvalidArgumentException;
 
 class PropiedadController extends Controller
 {
-    public function index()
+   public function index(Request $request) 
     {
-        $propiedades = Propiedad::with(['provincia', 'municipio'])
-            ->paginate(10);
+        // Si el usuario está autenticado, mostrar solo sus propiedades
+        // Si es anónimo, mostrar las propiedades públicas (o ninguna)
+        // Filtro Todas/Favoritas en listado premium
 
+       if (!auth()->check()) {
+        $propiedades = collect();
         return view('propiedades.index', compact('propiedades'));
     }
+
+    $query = Propiedad::where('user_id', auth()->id())
+        ->with(['provincia', 'municipio']);
+
+    // Filtro de favoritos (solo para Premium)
+    if (auth()->user()->isPremium() && $request->filtro === 'favoritas') {
+        $query->whereHas('favoritos', function($q) {
+            $q->where('usuario_id', auth()->id());
+        });
+    }
+
+    $propiedades = $query->latest()->paginate(15);
+
+    return view('propiedades.index', compact('propiedades'));
+}
 
     public function show(Propiedad $propiedad)
     {
@@ -33,10 +52,10 @@ class PropiedadController extends Controller
         $request->validate([
             'referencia' => 'required|string|min:14|max:20'
         ]);
-    // ✅ DEBUG TEMPORAL
-    \Log::info('=== BÚSQUEDA INICIADA ===', [
-        'referencia' => $request->referencia,
-    ]);
+        // ✅ DEBUG TEMPORAL
+        \Log::info('=== BÚSQUEDA INICIADA ===', [
+            'referencia' => $request->referencia,
+        ]);
         try {
             $datos = $catastro->consultarPorReferencia($request->referencia);
 
@@ -119,20 +138,20 @@ class PropiedadController extends Controller
             return back()->with('error', 'Datos invalidos.');
         }
 
-        // ✅ DEBUG: Ver estructura completa que llega
-        \Log::info('=== ESTRUCTURA COMPLETA ===');
-        \Log::info('Keys nivel 1: ' . json_encode(array_keys($datos)));
+        // // ✅ DEBUG: Ver estructura completa que llega
+        // \Log::info('=== ESTRUCTURA COMPLETA ===');
+        // \Log::info('Keys nivel 1: ' . json_encode(array_keys($datos)));
 
-        if (isset($datos['consulta_dnprcResult'])) {
-            \Log::info('Tiene consulta_dnprcResult');
-            $data = $datos['consulta_dnprcResult'];
+        // if (isset($datos['consulta_dnprcResult'])) {
+        //     \Log::info('Tiene consulta_dnprcResult');
+        //     $data = $datos['consulta_dnprcResult'];
 
-            if (isset($data['bico']['bi']['dt']['locs'])) {
-                \Log::info('locs: ' . json_encode($data['bico']['bi']['dt']['locs']));
-            } else {
-                \Log::info('NO TIENE locs');
-            }
-        }
+        //     if (isset($data['bico']['bi']['dt']['locs'])) {
+        //         \Log::info('locs: ' . json_encode($data['bico']['bi']['dt']['locs']));
+        //     } else {
+        //         \Log::info('NO TIENE locs');
+        //     }
+        // }
 
         $data = $datos['consulta_dnprcResult'];
         $bico = $data['bico'];
@@ -195,7 +214,7 @@ class PropiedadController extends Controller
                 'escalera'            => $loint['es'] ?? null,
                 'planta'              => $loint['pt'] ?? null,
                 'puerta'              => $loint['pu'] ?? null,
-                'codigo_postal'       => $lourb['dp'] ?? null,  
+                'codigo_postal'       => $lourb['dp'] ?? null,
                 'uso'                 => $bi['debi']['luso'] ?? null,
                 'superficie_m2'       => (float)($bi['debi']['sfc'] ?? 0),
                 'coef_participacion'  => str_replace(',', '.', $bi['debi']['cpt'] ?? null),
@@ -261,6 +280,57 @@ class PropiedadController extends Controller
         return isset($datos['consulta_dnplocResult']['bico'])
             ? count((array)$datos['consulta_dnplocResult']['bico'])
             : 0;
+    }
+
+
+    // FAVORITOS  (añadir O quitar)
+    public function toggleFavorito(Propiedad $propiedad)
+    {
+        $favorito = $propiedad->favoritos()
+            ->where('usuario_id', auth()->id())
+            ->first();
+
+        if ($favorito) {
+            // Quitar de favoritos
+            $favorito->delete();
+            return back()->with('success', 'Propiedad eliminada de favoritos.');
+        } else {
+            // Añadir a favoritos
+            $propiedad->favoritos()->create([
+                'usuario_id' => auth()->id(),
+            ]);
+            return back()->with('success', 'Propiedad añadida a favoritos.');
+        }
+    }
+
+    // Guardar nota
+    public function guardarNota(Request $request, Propiedad $propiedad)
+    {
+        $request->validate([
+            'contenido' => 'required|string|max:1000',
+            'tipo' => 'required|in:privada,publica',
+        ]);
+
+        $propiedad->notas()->create([
+            'usuario_id' => auth()->id(),
+            'texto' => $request->contenido,  
+            'tipo' => $request->tipo,
+        ]);
+
+        return back()->with('success', 'Nota añadida correctamente.');
+    }
+
+    // Eliminar nota
+    public function eliminarNota(Propiedad $propiedad, Nota $nota)
+    {
+        // Verificar que la nota pertenece al usuario
+        if ($nota->usuario_id !== auth()->id()) {
+            abort(403, 'No tienes permiso para eliminar esta nota.');
+        }
+
+        $nota->delete();
+
+        return back()->with('success', 'Nota eliminada correctamente.');
     }
 
     public function testApi(Request $request, CatastroService $catastro)
