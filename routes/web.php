@@ -4,12 +4,15 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PropiedadController;
 use App\Http\Controllers\UpgradeController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Admin\AdminController;
+
 
 /*
 |--------------------------------------------------------------------------
 | Rutas públicas — Anónimo
 |--------------------------------------------------------------------------
 */
+
 Route::get('/manual', function () {
     return view('manual');
 })->name('manual');
@@ -74,22 +77,30 @@ Route::middleware(['auth', 'activo', 'role:registrado,admin'])->group(function (
         return view('propiedades.buscar-direccion');
     })->name('propiedades.formBuscarDireccion');
 
-    Route::post('/propiedades/buscar-direccion',
-        [PropiedadController::class, 'buscarPorDireccion'])
+    Route::post(
+        '/propiedades/buscar-direccion',
+        [PropiedadController::class, 'buscarPorDireccion']
+    )
         ->name('propiedades.buscarDireccion');
 
-   // FAVORITOS - Solo Premium
-    Route::post('/propiedades/{propiedad}/favorito',
-        [PropiedadController::class, 'toggleFavorito'])
+    // FAVORITOS - Solo Premium
+    Route::post(
+        '/propiedades/{propiedad}/favorito',
+        [PropiedadController::class, 'toggleFavorito']
+    )
         ->name('propiedades.favorito');
 
     // NOTAS - Solo Premium
-    Route::post('/propiedades/{propiedad}/nota',
-        [PropiedadController::class, 'guardarNota'])
+    Route::post(
+        '/propiedades/{propiedad}/nota',
+        [PropiedadController::class, 'guardarNota']
+    )
         ->name('propiedades.nota');
 
-    Route::delete('/propiedades/{propiedad}/nota/{nota}',
-        [PropiedadController::class, 'eliminarNota'])
+    Route::delete(
+        '/propiedades/{propiedad}/nota/{nota}',
+        [PropiedadController::class, 'eliminarNota']
+    )
         ->name('propiedades.nota.eliminar');
 });
 
@@ -102,8 +113,20 @@ Route::middleware(['auth', 'activo', 'role:admin'])
     ->prefix('admin')
     ->name('admin.')
     ->group(function () {
-        Route::get('/dashboard', fn() => view('admin.dashboard'))
+        Route::get('/dashboard', [AdminController::class, 'dashboard'])
             ->name('dashboard');
+
+        Route::get('/usuarios', [AdminController::class, 'usuarios'])
+            ->name('usuarios');
+
+        Route::post('/usuarios/{user}/rol', [AdminController::class, 'cambiarRol'])
+            ->name('usuarios.rol');
+
+        Route::post('/usuarios/{user}/toggle', [AdminController::class, 'toggleActivo'])
+            ->name('usuarios.toggle');
+
+        Route::get('/logs', [AdminController::class, 'logs'])
+            ->name('logs');
     });
 
 require __DIR__ . '/auth.php';
