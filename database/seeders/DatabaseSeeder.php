@@ -18,13 +18,13 @@ class DatabaseSeeder extends Seeder
 
         //Gestión de la información de la entrega del proyecto
         $this->call([
-            // ProvinciaSeeder::class,
-            // MunicipioSeeder::class,
+            ProvinciaSeeder::class,
+            MunicipioSeeder::class,
             UserSeeder::class,
-            // PropiedadSeeder::class,
-            // UnidadConstructivaSeeder::class,
-            // FavoritoSeeder::class,
-            // NotaSeeder::class,
+            PropiedadSeeder::class,
+            UnidadConstructivaSeeder::class,
+            FavoritoSeeder::class,
+            NotaSeeder::class,
         ]);
     }
 }

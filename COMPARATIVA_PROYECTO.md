@@ -25,9 +25,9 @@
 | Requisito Inicial | Estado | Implementación Real |
 |-------------------|--------|---------------------|
 | Tabla users | ✅ 100% | ✅ Con roles y campos adicionales |
-| Tabla propiedades | ✅ 100% | ✅ Con 20+ campos de datos catastrales |
+| Tabla propiedades | ✅ 100% | ✅ Con 4 campos de datos catastrales |
 | Relaciones básicas | ✅ 100% | ✅ + Favoritos, Notas, Búsquedas, Logs |
-| Seeders de provincias/municipios | ✅ 100% | ✅ 52 provincias + municipios principales |
+| Seeders de provincias/municipios | ✅ 100% | ✅  provincias + municipios principales |
 
 **Mejoras implementadas:**
 - ✨ Tabla `unidades_constructivas` (no planificada inicialmente)
@@ -49,8 +49,7 @@
 | Registro/Login básico | ✅ 100% | ✅ Españolizado y con diseño propio |
 
 **Mejoras implementadas:**
-- ✨ Vistas de autenticación completamente españolizadas
-- ✨ Diseño corporativo unificado (sin Laravel branding)
+- ✨ Vistas de autenticación Breze (en español)
 - ✨ Favicon personalizado
 - ✨ Upgrade a Premium simulado (gratuito para académico)
 - ✨ Sistema de activación/desactivación de usuarios
@@ -208,7 +207,7 @@ catastro_daw/
 │       └── CatastroService.php (✅ Con fallback)
 ├── database/
 │   ├── migrations/ (✅ 9 migraciones)
-│   └── seeders/ (✅ Provincias, Municipios, Usuarios)
+│   └── seeders/ (✅ Provincias, Municipios, Usuarios, Propiedades, Fvoritos, Notas,)
 ├── resources/views/
 │   ├── layouts/ (✅ app.blade.php + guest.blade.php)
 │   ├── auth/ (✅ 6 vistas españolizadas)
@@ -234,7 +233,7 @@ catastro_daw/
 | **Vistas Blade** | 20+ vistas |
 | **Rutas** | 30+ rutas |
 | **Middleware personalizado** | 2 middleware |
-| **Seeders** | 3 seeders |
+| **Seeders** | 36 seeders |
 | **Líneas de CSS** | ~500 líneas |
 | **Commits Git** | 15+ commits |
 

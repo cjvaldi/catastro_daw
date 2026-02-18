@@ -40,5 +40,7 @@ class UserSeeder extends Seeder
             'rol'      => User::ROLE_VISITANTE,
             'activo'   => true,
         ]);
+
+        $this->command->info('Usuarios de ejemplo creados correctamente');
     }
 }

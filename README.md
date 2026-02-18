@@ -77,9 +77,10 @@ php artisan migrate --seed
 
 Este comando creará:
 - ✅ Todas las tablas necesarias
-- ✅ 52 provincias españolas
-- ✅ Municipios principales
+- ✅ Provincias 
+- ✅ Municipios 
 - ✅ 3 usuarios de prueba (ver abajo)
+- ✅ 4 propiedades de prueba 
 
 ### 7. Iniciar el servidor
 ```bash
@@ -96,9 +97,9 @@ El seeder crea automáticamente estos usuarios:
 
 | Email | Contraseña | Rol | Permisos |
 |-------|------------|-----|----------|
-| admin@catastro.test | password | **Administrador** | Todos los permisos + Panel Admin |
-| premium@catastro.test | password | **Premium** | Búsqueda avanzada + Favoritos + Notas |
-| visitante@catastro.test | password | **Visitante** | Búsqueda básica + Guardar propiedades |
+| admin@catastro.test | Admin1234! | **Administrador** | Todos los permisos + Panel Admin |
+| premium@catastro.test | Premium1234! | **Premium** | Búsqueda avanzada + Favoritos + Notas |
+| visitante@catastro.test | Visitante1234! | **Visitante** | Búsqueda básica + Guardar propiedades |
 
 ---
 
@@ -240,6 +241,9 @@ php artisan view:cache
 3. **Asegurar permisos:**
 ```bash
 chmod -R 775 storage bootstrap/cache
+
+win
+attrib -r bootstrap\cache /s /d
 ```
 
 ---
