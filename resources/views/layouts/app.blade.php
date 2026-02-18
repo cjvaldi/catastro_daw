@@ -81,7 +81,7 @@
 
     {{-- FOOTER UNIFICADO --}}
     <footer>
-        <p>&copy; 2026 Catastro DAW - Proyecto Académico</p>
+        <p>&copy; 2026 Catastro DAW - Proyecto Académico - Desarrollado por Cristian J.Valdivieso Valenzuela</p>
         <p style="margin-top: 8px;">
             <a href="{{ route('manual') }}" style="color: #9ca3af; text-decoration: underline;">
                 📖 Manual de Uso
