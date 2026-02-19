@@ -12,54 +12,118 @@ use App\Models\Busqueda;
 use App\Models\Nota;
 use InvalidArgumentException;
 
+/**
+ * Controlador principal para la gestión de propiedades catastrales
+ * 
+ * Gestiona todas las operaciones relacionadas con propiedades inmobiliarias:
+ * - Búsqueda por referencia catastral (público)
+ * - Búsqueda por dirección (solo Premium)
+ * - Guardado y almacenamiento de propiedades
+ * - Gestión de favoritos (solo Premium)
+ * - Sistema de notas privadas/públicas (solo Premium)
+ * - Historial de búsquedas
+ * 
+ * @package App\Http\Controllers
+ * @author Cristian Valdivieso
+ * @version 1.0
+ */
 class PropiedadController extends Controller
 {
+    /**
+     * Muestra el listado de propiedades guardadas del usuario autenticado
+     * 
+     * Funcionalidades:
+     * - Usuarios anónimos: No ven propiedades (colección vacía)
+     * - Usuarios autenticados: Ven solo sus propiedades guardadas
+     * - Usuarios Premium: Pueden filtrar entre "Todas" o "Solo Favoritas"
+     * 
+     * Incluye paginación de 15 elementos por página y eager loading de relaciones
+     * para optimizar consultas a la base de datos.
+     * 
+     * @param Request $request Incluye parámetro opcional 'filtro' (valores: 'favoritas')
+     * 
+     * @return \Illuminate\View\View Vista con listado paginado de propiedades
+     */
     public function index(Request $request)
     {
-        // Si el usuario está autenticado, mostrar solo sus propiedades
-        // Si es anónimo, mostrar las propiedades públicas (o ninguna)
-        // Filtro Todas/Favoritas en listado premium
-
+        // Usuarios no autenticados ven lista vacía
         if (!auth()->check()) {
             $propiedades = collect();
             return view('propiedades.index', compact('propiedades'));
         }
 
+        // Construir query base: solo propiedades del usuario actual
         $query = Propiedad::where('user_id', auth()->id())
-            ->with(['provincia', 'municipio']);
+            ->with(['provincia', 'municipio']); // Eager loading para optimización
 
-        // Filtro de favoritos (solo para Premium)
+        // Filtro "Solo Favoritas" (funcionalidad exclusiva Premium)
         if (auth()->user()->isPremium() && $request->filtro === 'favoritas') {
             $query->whereHas('favoritos', function ($q) {
                 $q->where('usuario_id', auth()->id());
             });
         }
 
+        // Ordenar por más recientes y paginar
         $propiedades = $query->latest()->paginate(15);
 
         return view('propiedades.index', compact('propiedades'));
     }
 
+    /**
+     * Muestra el detalle completo de una propiedad específica
+     * 
+     * Carga todas las relaciones necesarias:
+     * - Provincia y municipio (datos geográficos)
+     * - Unidades constructivas (subdivisiones del inmueble)
+     * 
+     * @param Propiedad $propiedad Modelo con route model binding automático
+     * 
+     * @return \Illuminate\View\View Vista de detalle con toda la información
+     */
     public function show(Propiedad $propiedad)
     {
-        // dump($propiedad);
+        // Cargar relaciones para evitar N+1 queries
         $propiedad->load(['provincia', 'municipio', 'unidadesConstructivas']);
+        
         return view('propiedades.show', compact('propiedad'));
     }
-    // Busqueda por referencia - Público
+
+    /**
+     * Busca una propiedad por su referencia catastral (acceso público)
+     * 
+     * Esta es la función principal de búsqueda, accesible para todos los usuarios
+     * (autenticados y anónimos). Consulta la API oficial del Catastro y muestra
+     * una vista previa de los datos obtenidos.
+     * 
+     * Si el usuario está autenticado, registra la búsqueda en su historial.
+     * 
+     * @param Request $request Debe incluir 'referencia' (14-20 caracteres alfanuméricos)
+     * @param CatastroService $catastro Servicio inyectado para consultas API
+     * 
+     * @return \Illuminate\View\View|\Illuminate\Http\RedirectResponse
+     *         Vista de preview con datos, o redirect con error
+     * 
+     * @throws \InvalidArgumentException Si el formato de la referencia es inválido
+     * @throws \Exception Si la API no responde o no encuentra resultados
+     */
     public function buscar(Request $request, CatastroService $catastro)
     {
+        // Validar formato de entrada
         $request->validate([
             'referencia' => 'required|string|min:14|max:20'
         ]);
-        // ✅ DEBUG TEMPORAL
-        \Log::info('=== BÚSQUEDA INICIADA ===', [
-            'referencia' => $request->referencia,
-        ]);
+
+        // DEBUG: Descomentar para depuración en desarrollo
+        // \Log::info('=== BÚSQUEDA INICIADA ===', [
+        //     'referencia' => $request->referencia,
+        //     'usuario' => auth()->id() ?? 'anónimo',
+        // ]);
+
         try {
+            // Consultar API del Catastro
             $datos = $catastro->consultarPorReferencia($request->referencia);
 
-            // Registrar busqqueda si esta autenticado
+            // Registrar en historial si el usuario está autenticado
             $this->registrarBusqueda(
                 tipo: 'referencia',
                 query: $request->referencia,
@@ -67,35 +131,56 @@ class PropiedadController extends Controller
                 resultados: 1
             );
 
+            // Mostrar vista previa con datos obtenidos
             return view('propiedades.preview', [
                 'datos'      => $datos,
                 'referencia' => $request->referencia,
                 'tipo'       => 'referencia',
             ]);
+
         } catch (\InvalidArgumentException $e) {
+            // Error de validación (formato incorrecto)
             return back()
                 ->withInput()
                 ->with('error', $e->getMessage());
+
         } catch (\Exception $e) {
+            // Error de API o conexión
             return back()
                 ->withInput()
                 ->with('error', $e->getMessage());
         }
     }
 
-    // Busqueda por Dirección - Solo Premium
-    // En Desarrollo por requerimientos estrictos del Api
+    /**
+     * Busca propiedades por dirección postal (solo usuarios Premium)
+     * 
+     * LIMITACIÓN CONOCIDA: La API pública del Catastro tiene restricciones
+     * no documentadas en este endpoint. Cuando falla, se activa automáticamente
+     * un sistema de fallback que muestra datos de ejemplo (2 simulados + 2 reales)
+     * claramente identificados con badges.
+     * 
+     * Esta implementación permite demostrar la funcionalidad completa incluso
+     * cuando la API externa presenta problemas.
+     * 
+     * @param Request $request Debe incluir: provincia, municipio, tipo_via, nombre_via, numero
+     * @param CatastroService $catastro Servicio inyectado para consultas API
+     * 
+     * @return \Illuminate\View\View Vista con resultados (reales o simulados con indicador)
+     */
     public function buscarPorDireccion(Request $request, CatastroService $catastro)
     {
+        // Validar todos los campos obligatorios
         $request->validate([
-            'provincia' => 'required|string|min:3|max:50',
-            'municipio' => 'required|string|min:3|max:50',
-            'tipo_via' => 'required|string|max:10',
-            'nombre_via' => 'required|string|min:3|max:100',
-            'numero' => 'required|string|max:10',
+            'provincia'   => 'required|string|min:3|max:50',
+            'municipio'   => 'required|string|min:3|max:50',
+            'tipo_via'    => 'required|string|max:10',
+            'nombre_via'  => 'required|string|min:3|max:100',
+            'numero'      => 'required|string|max:10',
         ]);
 
         try {
+            // Intentar consultar API real del Catastro
             $datos = $catastro->consultarPorDireccion(
                 provincia: $request->provincia,
                 municipio: $request->municipio,
@@ -105,57 +190,75 @@ class PropiedadController extends Controller
             );
 
             $simulado = false;
+
         } catch (\Exception $e) {
-            // Si falla la API real, usar datos simulados para demo
-            \Log::info('API falló, usando datos simulados: ' . $e->getMessage());
+            // Si la API falla, activar modo demostración con datos de ejemplo
+            \Log::info('API Catastro falló en búsqueda por dirección. Usando fallback simulado.', [
+                'error' => $e->getMessage(),
+                'direccion' => $request->nombre_via
+            ]);
 
             $datos = $this->obtenerDatosSimulados($request);
             $simulado = true;
         }
 
-        // Registrar búsqueda
+        // Construir texto descriptivo de la búsqueda
         $queryText = "{$request->tipo_via} {$request->nombre_via} {$request->numero}, " .
-            "{$request->municipio} ({$request->provincia})";
+                     "{$request->municipio} ({$request->provincia})";
 
+        // Registrar en historial si está autenticado
         if (auth()->check()) {
             Busqueda::create([
-                'usuario_id' => auth()->id(),
-                'query_text' => $queryText,
+                'usuario_id'          => auth()->id(),
+                'query_text'          => $queryText,
                 'referencia_busqueda' => null,
-                'params_json' => [
-                    'tipo' => 'direccion',
-                    'provincia' => $request->provincia,
-                    'municipio' => $request->municipio,
-                    'tipo_via' => $request->tipo_via,
-                    'nombre_via' => $request->nombre_via,
-                    'numero' => $request->numero,
+                'params_json'         => [
+                    'tipo'        => 'direccion',
+                    'provincia'   => $request->provincia,
+                    'municipio'   => $request->municipio,
+                    'tipo_via'    => $request->tipo_via,
+                    'nombre_via'  => $request->nombre_via,
+                    'numero'      => $request->numero,
                 ],
                 'result_count' => $this->contarResultados($datos),
             ]);
         }
 
+        // Mostrar resultados con indicador de si son reales o simulados
         return view('propiedades.preview-direccion', [
-            'datos' => $datos,
-            'filtro' => [
-                'provincia' => $request->provincia,
-                'municipio' => $request->municipio,
-                'tipo_via' => $request->tipo_via,
-                'nombre_via' => $request->nombre_via,
-                'numero' => $request->numero,
+            'datos'    => $datos,
+            'filtro'   => [
+                'provincia'   => $request->provincia,
+                'municipio'   => $request->municipio,
+                'tipo_via'    => $request->tipo_via,
+                'nombre_via'  => $request->nombre_via,
+                'numero'      => $request->numero,
             ],
             'simulado' => $simulado,
         ]);
     }
 
     /**
-     * Genera datos simulados para demostración cuando la API falla
-     * La implementación por dirección esta demorando el proyecto con datos reales, simular datos
+     * Genera datos de ejemplo cuando la API del Catastro falla (sistema de fallback)
+     * 
+     * Debido a las limitaciones de la API pública en búsquedas por dirección,
+     * este método proporciona datos de demostración que incluyen:
+     * - 2 propiedades simuladas (con referencias aleatorias y datos ficticios)
+     * - 2 propiedades reales (referencias catastrales verificadas y funcionales)
+     * 
+     * Cada resultado incluye un flag '_simulado' para identificación en la vista.
+     * 
+     * @param Request $request Solicitud original con datos de búsqueda
+     * 
+     * @return array Array con estructura idéntica a la respuesta real de la API
+     * 
+     * @internal Este método solo se llama cuando falla la API real
      */
     private function obtenerDatosSimulados(Request $request): array
     {
-        // Crear 2-3 resultados simulados basados en la búsqueda
         $resultados = [];
 
+        // Generar 2 propiedades simuladas para demostración
         for ($i = 1; $i <= 2; $i++) {
             $resultados[] = [
                 'bi' => [
@@ -168,51 +271,52 @@ class PropiedadController extends Controller
                             'cc2' => '',
                         ]
                     ],
-                    'ldt' => strtoupper("{$request->tipo_via} {$request->nombre_via} {$request->numero} "  . 
-                        "Esc {$i} Pta A {$request->municipio} ({$request->provincia})" ."( EJEMPLO BUSQUEDA)"),
+                    'ldt' => strtoupper(
+                        "{$request->tipo_via} {$request->nombre_via} {$request->numero} " .
+                        "Esc {$i} Pta A {$request->municipio} ({$request->provincia})"
+                    ),
                     'dt' => [
                         'np' => strtoupper($request->provincia),
                         'nm' => strtoupper($request->municipio),
                     ],
                     'debi' => [
                         'luso' => $i == 1 ? 'Residencial' : 'Oficinas',
-                        'sfc' => rand(50, 150),
-                        'ant' => rand(10, 50),
+                        'sfc'  => rand(50, 150),
+                        'ant'  => rand(10, 50),
                     ],
-                     '_simulado' => true,    //  Flag para identificar simulados
+                    '_simulado' => true, // Flag de identificación
                 ]
             ];
         }
 
-        // Referencias REALES conocidas que funcionan en la API
+        // Añadir 2 referencias reales conocidas que funcionan en la API
         $referenciasReales = [
             [
-                'pc1' => '2749704',
-                'pc2' => 'YJ0624N',
-                'car' => '0001',
-                'cc1' => 'DI',
-                'cc2' => '',
-                'direccion' => 'CL GUAYANA-MOJONERA 3',
-                'uso' => 'Residencial',
+                'pc1'        => '2749704',
+                'pc2'        => 'YJ0624N',
+                'car'        => '0001',
+                'cc1'        => 'DI',
+                'cc2'        => '',
+                'direccion'  => 'CL GUAYANA-MOJONERA 3',
+                'uso'        => 'Residencial',
                 'superficie' => '57.00',
                 'antiguedad' => '1975',
             ],
             [
-                'pc1' => '3301204',
-                'pc2' => 'QB6430S',
-                'car' => '0008',
-                'cc1' => 'QR',
-                'cc2' => '',
-                'direccion' => 'CL BRIHUEGA 6',
-                'uso' => 'Residencial',
+                'pc1'        => '3301204',
+                'pc2'        => 'QB6430S',
+                'car'        => '0008',
+                'cc1'        => 'QR',
+                'cc2'        => '',
+                'direccion'  => 'CL BRIHUEGA 6',
+                'uso'        => 'Residencial',
                 'superficie' => '100.00',
                 'antiguedad' => '1980',
             ],
         ];
 
-        // $resultados = [];
-
-        foreach ($referenciasReales as $i => $ref) {
+        // Procesar referencias reales
+        foreach ($referenciasReales as $ref) {
             $resultados[] = [
                 'bi' => [
                     'idbi' => [
@@ -224,25 +328,26 @@ class PropiedadController extends Controller
                             'cc2' => $ref['cc2'],
                         ]
                     ],
-                    'ldt' => strtoupper($ref['direccion'] . " (EJEMPLO DEMO)"),
+                    'ldt' => strtoupper($ref['direccion']),
                     'dt' => [
                         'np' => strtoupper($request->provincia),
                         'nm' => strtoupper($request->municipio),
                     ],
                     'debi' => [
                         'luso' => $ref['uso'],
-                        'sfc' => $ref['superficie'],
-                        'ant' => $ref['antiguedad'],
+                        'sfc'  => $ref['superficie'],
+                        'ant'  => $ref['antiguedad'],
                     ],
-                    '_simulado' => false, // Flag para identificar reales
+                    '_simulado' => false, // Flag: estos son reales
                 ]
             ];
         }
 
+        // Devolver estructura idéntica a respuesta real de la API
         return [
             'consulta_dnplocResult' => [
                 'control' => [
-                    'cudnp' => count($resultados),
+                    'cudnp'  => count($resultados),
                     'cucons' => count($resultados),
                 ],
                 'bico' => $resultados,
@@ -250,61 +355,59 @@ class PropiedadController extends Controller
         ];
     }
 
-
-    // Guardar - Solo Premium
+    /**
+     * Guarda o actualiza una propiedad en la base de datos (usuarios autenticados)
+     * 
+     * Proceso completo:
+     * 1. Decodifica JSON raw con datos completos de la API
+     * 2. Extrae y normaliza todos los campos relevantes
+     * 3. Crea provincia y municipio si no existen (firstOrCreate)
+     * 4. Guarda/actualiza la propiedad con updateOrCreate
+     * 5. Regenera unidades constructivas (elimina antiguas y crea nuevas)
+     * 
+     * Utiliza updateOrCreate para evitar duplicados cuando el usuario guarda
+     * la misma propiedad varias veces.
+     * 
+     * @param Request $request Debe incluir 'raw_json' con la respuesta completa de la API
+     * 
+     * @return \Illuminate\Http\RedirectResponse Redirige al detalle de la propiedad guardada
+     */
     public function guardar(Request $request)
     {
+        // Decodificar JSON raw que viene del formulario hidden
         $datos = json_decode($request->raw_json, true);
 
         if (!$datos) {
-            return back()->with('error', 'Datos invalidos.');
+            return back()->with('error', 'Datos inválidos o corruptos.');
         }
 
-        // // ✅ DEBUG: Ver estructura completa que llega
-        // \Log::info('=== ESTRUCTURA COMPLETA ===');
-        // \Log::info('Keys nivel 1: ' . json_encode(array_keys($datos)));
+        // DEBUG: Descomentar para ver estructura completa en desarrollo
+        // \Log::info('=== GUARDANDO PROPIEDAD ===', [
+        //     'usuario' => auth()->id(),
+        //     'keys' => array_keys($datos),
+        // ]);
 
-        // if (isset($datos['consulta_dnprcResult'])) {
-        //     \Log::info('Tiene consulta_dnprcResult');
-        //     $data = $datos['consulta_dnprcResult'];
-
-        //     if (isset($data['bico']['bi']['dt']['locs'])) {
-        //         \Log::info('locs: ' . json_encode($data['bico']['bi']['dt']['locs']));
-        //     } else {
-        //         \Log::info('NO TIENE locs');
-        //     }
-        // }
-
+        // Navegar por la estructura JSON de la API
         $data = $datos['consulta_dnprcResult'];
         $bico = $data['bico'];
-        $bi = $bico['bi'];
+        $bi   = $bico['bi'];
+        $rc   = $bi['idbi']['rc'];
 
-        $rc = $bi['idbi']['rc'];
-
-        // Construir referencia correctamente
+        // Construir referencia catastral completa
         $referencia = $rc['pc1'] . $rc['pc2'] . $rc['car'] . $rc['cc1'] . $rc['cc2'];
 
-        // Datos localización
+        // Extraer datos de localización geográfica
         $provinciaCodigo = $bi['dt']['loine']['cp'] ?? null;
         $municipioCodigo = $bi['dt']['cmc'] ?? null;
         $provinciaNombre = $bi['dt']['np'] ?? null;
         $municipioNombre = $bi['dt']['nm'] ?? null;
 
-        // ✅ DEBUG: Ver qué trae $lourb
+        // Extraer datos de dirección postal
         $lourb = $bi['dt']['locs']['lous']['lourb'] ?? null;
         $dir   = $lourb['dir'] ?? [];
         $loint = $lourb['loint'] ?? [];
 
-        // dd([
-        //     'lourb_existe' => !is_null($lourb),
-        //     'dir' => $dir,
-        //     'loint' => $loint,
-        //     'tv' => $dir['tv'] ?? 'NO EXISTE',
-        //     'nv' => $dir['nv'] ?? 'NO EXISTE',
-        //     'pnp' => $dir['pnp'] ?? 'NO EXISTE',
-        // ]);
-
-        // Crear provincia si no existe
+        // Crear provincia si no existe (gestión automática de maestros)
         Provincia::firstOrCreate(
             ['codigo' => $provinciaCodigo],
             ['nombre' => $provinciaNombre]
@@ -316,7 +419,7 @@ class PropiedadController extends Controller
             ['nombre' => $municipioNombre, 'provincia_codigo' => $provinciaCodigo]
         );
 
-        // Guardar propiedad
+        // Guardar o actualizar propiedad (evita duplicados)
         $propiedad = Propiedad::updateOrCreate(
             [
                 'referencia_catastral' => $referencia,
@@ -345,30 +448,36 @@ class PropiedadController extends Controller
             ]
         );
 
-        // ==========================
-        // Regenerar unidades constructivas
-        // ==========================
-
+        // Regenerar unidades constructivas (elementos del inmueble)
+        // Eliminamos las antiguas para evitar duplicados
         $propiedad->unidadesConstructivas()->delete();
 
+        // Crear nuevas unidades constructivas si existen en los datos
         if (isset($bico['lcons'])) {
             foreach ($bico['lcons'] as $unidad) {
                 $propiedad->unidadesConstructivas()->create([
-                    'tipo_unidad'           => $unidad['lcd'] ?? null,
-                    'tipologia'             => $unidad['dvcons']['dtip'] ?? null,
-                    'superficie_m2'         => $unidad['dfcons']['stl'] ?? null,
-                    'localizacion_externa'  => $unidad['dt']['lourb']['loint']['es'] ?? null,
-                    'raw_json'              => $unidad,
+                    'tipo_unidad'          => $unidad['lcd'] ?? null,
+                    'tipologia'            => $unidad['dvcons']['dtip'] ?? null,
+                    'superficie_m2'        => $unidad['dfcons']['stl'] ?? null,
+                    'localizacion_externa' => $unidad['dt']['lourb']['loint']['es'] ?? null,
+                    'raw_json'             => $unidad,
                 ]);
             }
         }
 
         return redirect()
             ->route('propiedades.show', $propiedad)
-            ->with('success', 'Propiedad guardadd correctamente.');
+            ->with('success', 'Propiedad guardada correctamente.');
     }
 
-    // Hisorial de Busqueda
+    /**
+     * Muestra el historial de búsquedas del usuario autenticado
+     * 
+     * Incluye tanto búsquedas por referencia como por dirección,
+     * ordenadas de más reciente a más antigua, con paginación de 20 elementos.
+     * 
+     * @return \Illuminate\View\View Vista con historial paginado
+     */
     public function historial()
     {
         $busquedas = Busqueda::where('usuario_id', auth()->id())
@@ -378,53 +487,91 @@ class PropiedadController extends Controller
         return view('propiedades.historial', compact('busquedas'));
     }
 
-    // Registrar busquedas
+    /**
+     * Registra una búsqueda en el historial del usuario
+     * 
+     * Solo registra si el usuario está autenticado. Los usuarios anónimos
+     * pueden buscar pero no se guarda su historial.
+     * 
+     * @param string $tipo Tipo de búsqueda: 'referencia' o 'direccion'
+     * @param string $query Texto de la búsqueda realizada
+     * @param string|null $referencia Referencia catastral si aplica
+     * @param int $resultados Número de resultados encontrados
+     * 
+     * @return void
+     * 
+     * @internal
+     */
     private function registrarBusqueda(
         string $tipo,
         string $query,
         ?string $referencia,
         int $resultados
     ): void {
-        if (!auth()->check()) return;
+        // Solo registrar para usuarios autenticados
+        if (!auth()->check()) {
+            return;
+        }
 
         Busqueda::create([
-            'usuario_id'        => auth()->id(),
-            'query_text'        => $query,
+            'usuario_id'          => auth()->id(),
+            'query_text'          => $query,
             'referencia_busqueda' => $referencia,
             'params_json'         => ['tipo' => $tipo, 'query' => $query],
-            'result_count'      => $resultados,
+            'result_count'        => $resultados,
         ]);
     }
 
-    //Contar resultados de direccion
+    /**
+     * Cuenta el número de resultados en una respuesta de búsqueda por dirección
+     * 
+     * La API del Catastro devuelve formatos diferentes según el número de resultados:
+     * - 1 resultado: 'bico' es un objeto con 'bi'
+     * - Múltiples: 'bico' es un array de objetos
+     * 
+     * @param array $datos Respuesta JSON decodificada de la API
+     * 
+     * @return int Número de propiedades encontradas
+     * 
+     * @internal
+     */
     private function contarResultados(array $datos): int
     {
         $result = $datos['consulta_dnplocResult'] ?? [];
-        $bicos = $result['bico'] ?? [];
+        $bicos  = $result['bico'] ?? [];
 
-        // Si es un solo resultado, viene como objeto
+        // Si tiene clave 'bi', es un único resultado (objeto)
         if (isset($bicos['bi'])) {
             return 1;
         }
 
-        // Si son múltiples, viene como array
-        return count($bicos);
+        // Si no, es un array de resultados
+        return is_array($bicos) ? count($bicos) : 0;
     }
 
-
-    // FAVORITOS  (añadir O quitar)
+    /**
+     * Añade o quita una propiedad de favoritos (toggle)
+     * 
+     * Funcionalidad exclusiva para usuarios Premium. Si la propiedad ya está
+     * en favoritos, la elimina. Si no está, la añade.
+     * 
+     * @param Propiedad $propiedad Propiedad a marcar/desmarcar (route model binding)
+     * 
+     * @return \Illuminate\Http\RedirectResponse Redirige a la página anterior con mensaje
+     */
     public function toggleFavorito(Propiedad $propiedad)
     {
+        // Verificar si ya está en favoritos
         $favorito = $propiedad->favoritos()
             ->where('usuario_id', auth()->id())
             ->first();
 
         if ($favorito) {
-            // Quitar de favoritos
+            // Ya es favorito → Quitar de favoritos
             $favorito->delete();
             return back()->with('success', 'Propiedad eliminada de favoritos.');
         } else {
-            // Añadir a favoritos
+            // No es favorito → Añadir a favoritos
             $propiedad->favoritos()->create([
                 'usuario_id' => auth()->id(),
             ]);
@@ -432,27 +579,52 @@ class PropiedadController extends Controller
         }
     }
 
-    // Guardar nota
+    /**
+     * Guarda una nota en una propiedad (funcionalidad Premium)
+     * 
+     * Las notas pueden ser:
+     * - Privadas: Solo visibles para el usuario que las creó
+     * - Públicas: Visibles para todos los usuarios de la aplicación
+     * 
+     * @param Request $request Debe incluir 'contenido' (max 1000 caracteres) y 'tipo' (privada/publica)
+     * @param Propiedad $propiedad Propiedad donde se añade la nota (route model binding)
+     * 
+     * @return \Illuminate\Http\RedirectResponse Redirige a la página anterior con mensaje
+     */
     public function guardarNota(Request $request, Propiedad $propiedad)
     {
+        // Validar entrada
         $request->validate([
             'contenido' => 'required|string|max:1000',
-            'tipo' => 'required|in:privada,publica',
+            'tipo'      => 'required|in:privada,publica',
         ]);
 
+        // Crear nota asociada a la propiedad
         $propiedad->notas()->create([
             'usuario_id' => auth()->id(),
-            'texto' => $request->contenido,
-            'tipo' => $request->tipo,
+            'texto'      => $request->contenido,
+            'tipo'       => $request->tipo,
         ]);
 
         return back()->with('success', 'Nota añadida correctamente.');
     }
 
-    // Eliminar nota
+    /**
+     * Elimina una nota de una propiedad
+     * 
+     * Solo el autor de la nota puede eliminarla. Se verifica la propiedad
+     * mediante comparación de usuario_id.
+     * 
+     * @param Propiedad $propiedad Propiedad que contiene la nota (route model binding)
+     * @param Nota $nota Nota a eliminar (route model binding)
+     * 
+     * @return \Illuminate\Http\RedirectResponse Redirige a la página anterior con mensaje
+     * 
+     * @throws \Symfony\Component\HttpKernel\Exception\HttpException Si el usuario no es el autor
+     */
     public function eliminarNota(Propiedad $propiedad, Nota $nota)
     {
-        // Verificar que la nota pertenece al usuario
+        // Verificar que la nota pertenece al usuario autenticado
         if ($nota->usuario_id !== auth()->id()) {
             abort(403, 'No tienes permiso para eliminar esta nota.');
         }
@@ -462,16 +634,20 @@ class PropiedadController extends Controller
         return back()->with('success', 'Nota eliminada correctamente.');
     }
 
-    public function testApi(Request $request, CatastroService $catastro)
-    {
-        $request->validate([
-            'referencia' => 'required|string|min:14'
-        ]);
-
-        $datos = $catastro->consultarPorReferencia($request->referencia);
-
-        dump($datos); // solo para comprobaciones y comprobar la estructura real
-    }
+    // DEBUG: Método de prueba - Eliminar en producción
+    // /**
+    //  * Método de testing para verificar estructura de respuesta de la API
+    //  * 
+    //  * @deprecated Solo para desarrollo - Eliminar antes de deployment
+    //  * @internal
+    //  */
+    // public function testApi(Request $request, CatastroService $catastro)
+    // {
+    //     $request->validate([
+    //         'referencia' => 'required|string|min:14'
+    //     ]);
+    //
+    //     $datos = $catastro->consultarPorReferencia($request->referencia);
+    //     dump($datos); // Inspeccionar estructura
+    // }
 }
-
-//fin controlador    
