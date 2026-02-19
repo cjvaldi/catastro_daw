@@ -6,21 +6,48 @@ use Illuminate\Database\Seeder;
 use App\Models\User;
 use App\Models\Propiedad;
 
+/**
+ * Seeder de propiedades de ejemplo
+ * 
+ * Crea propiedades de prueba asociadas a los usuarios Visitante y Premium.
+ * Utiliza referencias catastrales reales que funcionan en la API del Catastro
+ * y datos simulados para demostración.
+ * 
+ * Distribución:
+ * - Usuario Visitante: 2 propiedades
+ * - Usuario Premium: 2 propiedades
+ * 
+ * Incluye referencias reales verificadas:
+ * - 2749704YJ0624N0001DI (Godelleta, Valencia)
+ * - 3301204QB6430S0008QR (San Juan de Aznalfarache, Sevilla)
+ * 
+ * @package Database\Seeders
+ * @author Cristian Valdivieso
+ * @version 1.0
+ */
 class PropiedadSeeder extends Seeder
 {
+    /**
+     * Ejecuta el seeder de propiedades
+     * 
+     * Crea 4 propiedades de ejemplo distribuidas entre usuarios Visitante y Premium.
+     * Verifica que los usuarios existan antes de crear las propiedades.
+     * 
+     * @return void
+     */
     public function run(): void
     {
         // Obtener usuarios de prueba
         $visitante = User::where('email', 'visitante@catastro.test')->first();
         $premium = User::where('email', 'premium@catastro.test')->first();
 
-        // Verificar que existan
+        // Verificar que existan los usuarios
         if (!$visitante || !$premium) {
-            $this->command->warn('Usuarios no encontrados. Ejecuta UserSeeder primero.');
+            $this->command->warn('⚠️ Usuarios no encontrados. Ejecuta UserSeeder primero.');
             return;
         }
 
-        // PROPIEDAD 1 - Visitante (Madrid)
+        // PROPIEDAD 1 - Visitante (Valencia - Referencia real)
         Propiedad::create([
             'user_id' => $visitante->id,
             'referencia_catastral' => '2749704YJ0624N0001DI',
@@ -44,7 +71,7 @@ class PropiedadSeeder extends Seeder
             'raw_json' => null,
         ]);
 
-        // PROPIEDAD 2 - Visitante (Barcelona)
+        // PROPIEDAD 2 - Visitante (Barcelona - Ejemplo)
         Propiedad::create([
             'user_id' => $visitante->id,
             'referencia_catastral' => 'TEST0001BARCELONA01',
@@ -68,7 +95,7 @@ class PropiedadSeeder extends Seeder
             'raw_json' => null,
         ]);
 
-        // PROPIEDAD 3 - Premium (Madrid)
+        // PROPIEDAD 3 - Premium (Madrid - Ejemplo)
         Propiedad::create([
             'user_id' => $premium->id,
             'referencia_catastral' => 'TEST0002MADRID00001',
@@ -92,13 +119,13 @@ class PropiedadSeeder extends Seeder
             'raw_json' => null,
         ]);
 
-        // PROPIEDAD 4 - Premium (Sevilla)
+        // PROPIEDAD 4 - Premium (Sevilla - Referencia real)
         Propiedad::create([
             'user_id' => $premium->id,
             'referencia_catastral' => '3301204QB6430S0008QR',
             'clase' => 'UR',
             'provincia_codigo' => '41',
-            'municipio_codigo' => '41091',
+            'municipio_codigo' => '41087',
             'provincia' => 'SEVILLA',
             'municipio' => 'SAN JUAN DE AZNALFARACHE',
             'direccion_text' => 'CL BRIHUEGA 6',
@@ -116,6 +143,6 @@ class PropiedadSeeder extends Seeder
             'raw_json' => null,
         ]);
 
-        $this->command->info('Propiedades de ejemplo creadas correctamente');
+        $this->command->info('✅ Propiedades de ejemplo creadas correctamente');
     }
 }

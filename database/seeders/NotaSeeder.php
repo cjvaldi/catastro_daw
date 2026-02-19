@@ -7,8 +7,27 @@ use App\Models\User;
 use App\Models\Propiedad;
 use App\Models\Nota;
 
+/**
+ * Seeder de notas de ejemplo
+ * 
+ * Crea notas de prueba (privada y pública) asociadas a propiedades
+ * del usuario Premium. Demuestra el sistema de notas exclusivo Premium.
+ * 
+ * @package Database\Seeders
+ * @author Cristian Valdivieso
+ * @version 1.0
+ */
 class NotaSeeder extends Seeder
 {
+    /**
+     * Ejecuta el seeder de notas
+     * 
+     * Crea dos notas de ejemplo:
+     * - Una nota privada en la primera propiedad
+     * - Una nota pública en la segunda propiedad (si existe)
+     * 
+     * @return void
+     */
     public function run(): void
     {
         $premium = User::where('email', 'premium@catastro.test')->first();

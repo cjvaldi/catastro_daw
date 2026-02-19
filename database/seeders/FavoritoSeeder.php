@@ -7,8 +7,26 @@ use App\Models\User;
 use App\Models\Propiedad;
 use App\Models\Favorito;
 
+/**
+ * Seeder de favoritos de ejemplo
+ * 
+ * Marca una propiedad como favorita para el usuario Premium de prueba.
+ * Demuestra la funcionalidad exclusiva Premium del sistema de favoritos.
+ * 
+ * @package Database\Seeders
+ * @author Cristian Valdivieso
+ * @version 1.0
+ */
 class FavoritoSeeder extends Seeder
 {
+    /**
+     * Ejecuta el seeder de favoritos
+     * 
+     * Marca la primera propiedad del usuario Premium como favorita.
+     * Requiere que existan PropiedadSeeder y UserSeeder previamente.
+     * 
+     * @return void
+     */
     public function run(): void
     {
         $premium = User::where('email', 'premium@catastro.test')->first();
