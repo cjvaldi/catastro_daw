@@ -169,14 +169,16 @@
                 </p>
             </div>
 
-            @if(auth()->check() && auth()->user()->isAdmin())
+            {{-- @if(auth()->check() && auth()->user()->isAdmin()) --}}
                 {{-- ====================================================================
                      SECCIÓN EXCLUSIVA ADMINISTRADOR
                      ==================================================================== --}}
                 <div style="margin-top: 48px; padding-top: 32px; border-top: 3px solid #ef4444;">
                     <div class="info-box info-box-red">
                         <strong>🔐 SECCIÓN EXCLUSIVA PARA ADMINISTRADORES</strong>
+                        {{--
                         <p style="margin-top: 4px;">La siguiente información solo es visible para usuarios con rol de Administrador.</p>
+                        --}}
                     </div>
 
                     <h3 style="margin-top: 24px; margin-bottom: 12px; font-size: 20px; font-weight: 600; color: #991b1b;">
@@ -227,7 +229,7 @@
                         </ul>
                     </div>
                 </div>
-            @endif
+            {{-- @endif --}}
 
             {{-- Soporte --}}
             <div class="info-box info-box-green" style="margin-top: 32px;">
