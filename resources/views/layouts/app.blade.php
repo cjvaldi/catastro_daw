@@ -12,32 +12,32 @@
 <body>
 
     {{-- HEADER UNIFICADO --}}
-<header>
-    <div class="container">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-            <h1>
-                <a href="{{ route('home') }}" style="color: white; text-decoration: none;">
-                    🏠 Catastro DAW
-                </a>
-            </h1>
-            
-            <nav style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
-                {{-- Menú público --}}
-                @guest
+    <header>
+        <div class="container">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h1>
+                    <a href="{{ route('home') }}" style="color: white; text-decoration: none;">
+                        🏠 Catastro DAW
+                    </a>
+                </h1>
+
+                <nav style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
+                    {{-- Menú público --}}
+                    @guest
                     <a href="{{ route('home') }}">Inicio</a>
                     <a href="{{ route('login') }}">Iniciar Sesión</a>
                     <a href="{{ route('register') }}" class="btn btn-warning" style="padding: 6px 16px;">
                         Registrarse
                     </a>
-                @endguest
+                    @endguest
 
-                {{-- Menú autenticado --}}
-                @auth
+                    {{-- Menú autenticado --}}
+                    @auth
                     {{-- Nombre del usuario (con límite) --}}
                     <span style="color: rgba(255,255,255,0.9); font-weight: 600; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ auth()->user()->name }}">
                         👤 {{ auth()->user()->name }}
                         @if(auth()->user()->isPremium())
-                            <span class="badge-premium" style="margin-left: 8px;">⭐</span>
+                        <span class="badge-premium" style="margin-left: 8px;">⭐</span>
                         @endif
                     </span>
 
@@ -45,17 +45,17 @@
                     <a href="{{ route('dashboard') }}">🏠 Inicio</a>
                     <a href="{{ route('propiedades.index') }}">📂 Mis Propiedades</a>
                     <a href="{{ route('propiedades.historial') }}">📊 Historial</a>
-                    
+
                     @if(!auth()->user()->isPremium())
-                        <a href="{{ route('upgrade.show') }}" class="btn btn-warning" style="padding: 6px 16px;">
-                            ⭐ Premium
-                        </a>
+                    <a href="{{ route('upgrade.show') }}" class="btn btn-warning" style="padding: 6px 16px;">
+                        ⭐ Premium
+                    </a>
                     @endif
 
                     @if(auth()->user()->isAdmin())
-                        <a href="{{ route('admin.dashboard') }}" style="color: #fbbf24;">
-                            🔧 Admin
-                        </a>
+                    <a href="{{ route('admin.dashboard') }}" style="color: #fbbf24;">
+                        🔧 Admin
+                    </a>
                     @endif
 
                     {{-- Cerrar sesión --}}
@@ -65,11 +65,11 @@
                             Salir
                         </button>
                     </form>
-                @endauth
-            </nav>
+                    @endauth
+                </nav>
+            </div>
         </div>
-    </div>
-</header>
+    </header>
 
     {{-- CONTENIDO PRINCIPAL --}}
     <main class="container" style="min-height: calc(100vh - 200px); padding-top: 20px;">
@@ -83,6 +83,9 @@
             <a href="{{ route('manual') }}" style="color: #9ca3af; text-decoration: underline;">
                 📖 Manual de Uso
             </a>
+        </p>
+        <p style="margin: 8px 0 0 0; font-size: 12px; opacity: 0.8;">
+            Contacto: <a href="mailto:cj_valdi@hotmail.com" style="color: #90cdf4; text-decoration: none;">cj_valdi@hotmail.com</a>
         </p>
     </footer>
 

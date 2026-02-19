@@ -37,7 +37,10 @@
 
         {{-- Footer --}}
         <div style="text-align: center; margin-top: 24px; color: rgba(255,255,255,0.7); font-size: 12px;">
-            <p>&copy; 2026 Catastro DAW - Proyecto Académico</p>
+            <p>&copy; 2026 Catastro DAW - Proyecto Académico - Desarrollado por Cristian J.Valdivieso Valenzuela</p>
+            <p style="margin-top: 4px;">
+                Contacto: <a href="mailto:cj_valdi@hotmail.com" style="color: rgba(255,255,255,0.9); text-decoration: none;">cj_valdi@hotmail.com</a>
+            </p>
         </div>
     </div>
 
